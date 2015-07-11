@@ -14,25 +14,24 @@ module SDBMan
           borderwidth: 2,
           padding: '5 0 5 5'
         )
-        h_frame = Ttk::Frame.new(@frame,
-          borderwidth: 0
-        ).pack(side: 'left', expand: true, fill: 'both')
         @domain_list = TkVariable.new
-        @list = Tk::Listbox.new(h_frame,
+        @list = Tk::Listbox.new(@frame,
           borderwidth: 0,
           listvariable: @domain_list,
           selectmode: 'single',
           xscrollcommand: proc {|*args| @xscrollbar.set(*args)},          
           yscrollcommand: proc {|*args| @yscrollbar.set(*args)}          
-        ).pack(side: 'top', expand: true, fill: 'both') 
-        @xscrollbar = Ttk::Scrollbar.new(h_frame,
+        ).grid(row: 0, column: 0, sticky: 'nwse')
+        @xscrollbar = Ttk::Scrollbar.new(@frame,
           orient: 'horizontal',
           command: proc {|*args| @list.xview(*args)}
-        ).pack(fill: 'x')
+        ).grid(row: 1, column: 0, sticky: 'nwse')
         @yscrollbar = Ttk::Scrollbar.new(@frame,
           orient: 'vertical',
           command: proc {|*args| @list.yview(*args)}
-        ).pack(side: 'right', fill: 'y')     
+        ).grid(row: 0, column: 1, sticky: 'nwse')
+        TkGrid.columnconfigure @frame, 0, weight: 1
+        TkGrid.rowconfigure @frame, 0, weight: 1
       end
       
       def reload 
