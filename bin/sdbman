@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/data'
+require_relative '../lib/view'
+
+wnd = SDBMan::View::Window.new SDBMan::Data.new
+wnd.run
