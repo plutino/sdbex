@@ -11,7 +11,7 @@ module SDBMan
         @data = data        
         @frame = Ttk::LabelFrame.new(parent,
           text: 'Domains:',
-          borderwidth: 2,
+          borderwidth: 0,
           padding: '5 0 5 5'
         )
         @domain_list = TkVariable.new
