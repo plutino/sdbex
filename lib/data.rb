@@ -3,6 +3,8 @@ require 'aws-sdk-v1'
 module SDBMan
   class Data
   
+    attr_reader :active_domain
+  
     def initialize **options
       @opts = options || {}
       @sdb = nil
@@ -26,7 +28,7 @@ module SDBMan
     
       begin
         @sdb = AWS::SimpleDB.new @opts
-        set_domain domains.first
+        domains
       rescue Exception => ex
         @sdb = nil
         @active_domain = nil
@@ -42,7 +44,7 @@ module SDBMan
 
     def set_domain domain
       unless @sdb.nil?
-        @active_domain = @sdb.domains[domain]
+        @active_domain = domain
       end
     end
   

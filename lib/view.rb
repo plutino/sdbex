@@ -27,11 +27,11 @@ module SDBMan
 
         cred = Credential.new(left_frame, data)
         cred.frame.pack(side: 'top', fill: 'x')
-        cred.on_connect(proc {on_aws_connect})
+        cred.on_connect proc{on_aws_connect}
 
         @domain = Domain.new(left_frame, data)
         @domain.frame.pack(expand: true, fill: 'both')
-        @domain.on_change(self.on_domain_change)
+        @domain.on_change proc{on_domain_change}
         
         v_pane = Ttk::Panedwindow.new(h_pane,
           orient: 'vertical'
@@ -66,6 +66,7 @@ module SDBMan
       end
       
       def on_domain_change
+        puts 'domain changed'
       end
             
     end

@@ -51,7 +51,7 @@ module SDBMan
         # connect buttons
         Ttk::Button.new(@frame,
           text: 'Connect',
-          command: proc {self.aws_connect}
+          command: proc {aws_connect}
         ).grid(row: 3, column: 1, sticky: 'se')
         
         # temporary default cred to help development
