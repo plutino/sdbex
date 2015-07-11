@@ -3,7 +3,6 @@ require 'tk'
 
 module SDBMan
   module View
-    
     class Credential
 
       attr_reader :frame
