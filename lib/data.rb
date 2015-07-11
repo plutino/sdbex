@@ -6,7 +6,8 @@ module SDBMan
     attr_reader :active_domain
   
     def initialize **options
-      @opts = options || {}
+      @page_size = options.delete(:page_size) || 100
+      @aws_opts = options || {}
       @sdb = nil
       @active_domain = nil          
     end
@@ -20,17 +21,17 @@ module SDBMan
     # return exception if throws
     def connect key:, secret:, region: 'us-east-1'
       unless @sdb.nil?
-        return false if key == @opts[:access_key_id] && secret == @opts[:secret_access_key] && region == @opts[:region]
+        return false if key == @aws_opts[:access_key_id] && secret == @aws_opts[:secret_access_key] && region == @aws_opts[:region]
       end
     
-      @opts.merge!({
+      @aws_opts.merge!({
         access_key_id: key,
         secret_access_key: secret,
         region: region
       }) 
     
       begin
-        @sdb = AWS::SimpleDB.new @opts
+        @sdb = AWS::SimpleDB.new @aws_opts
         domains
       rescue Exception => ex
         @sdb = nil
@@ -50,10 +51,42 @@ module SDBMan
         @active_domain = domain
       end
     end
-  
-    def items
-      return [] if @active_domain.nil?
+    
+    def attr_ct
+      if @active_domain.nil?
+        0
+      else
+        @sdb.domains[@active_domain].metadata.attribute_name_count
+      end
     end
-
+      
+    def items
+      return [] if @active_domain.nil? 
+      header = []
+      data = []
+      @sdb.domains[@active_domain].items.each do |item|
+        line = [item.name]
+        attrs = item.attributes.to_h
+        line += header.map { |key| strip_value(attrs.delete(key)) } 
+        attrs.each do |k, v| 
+          header << k
+          line << strip_value(v)
+        end
+        data << line
+      end
+      return [] if data.empty?
+      [['Item'] + header] + data
+    end
+    
+    private
+    
+    def strip_value value
+      if !value.nil? && value.size == 1
+        value.first
+      else
+        value
+      end
+    end
+      
   end
 end

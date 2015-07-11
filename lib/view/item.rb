@@ -34,6 +34,9 @@ module SDBMan
       end
       
       def reload
+        d = @data.items
+        @item_tbl['cols'] = @data.attr_ct
+        @item_tbl['rows'] = d.count + 1
       end
       
     end
