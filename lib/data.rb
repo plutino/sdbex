@@ -15,6 +15,9 @@ module SDBMan
       ['us-east-1', 'us-west-1', 'us-west-2']
     end
 
+    # return true if connection changed
+    # return false if nothing changed
+    # return exception if throws
     def connect key:, secret:, region: 'us-east-1'
       unless @sdb.nil?
         return false if key == @opts[:access_key_id] && secret == @opts[:secret_access_key] && region == @opts[:region]
@@ -32,7 +35,7 @@ module SDBMan
       rescue Exception => ex
         @sdb = nil
         @active_domain = nil
-        raise ex
+        return ex
       end
       true
     end

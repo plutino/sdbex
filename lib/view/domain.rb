@@ -6,9 +6,10 @@ module SDBMan
 
       attr_reader :frame
 
-      def initialize parent, data
+      def initialize parent, data, logger
         @callbacks = {}
         @data = data        
+        @logger = logger
         @frame = Ttk::LabelFrame.new(parent,
           text: 'Domains:',
           borderwidth: 0,

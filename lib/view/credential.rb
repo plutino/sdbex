@@ -7,9 +7,10 @@ module SDBMan
 
       attr_reader :frame
 
-      def initialize parent, data
+      def initialize parent, data, logger
         @callbacks = {}
         @data = data        
+        @logger = logger
         @frame = Ttk::Frame.new(parent,
           padding: '5 5 5 5'
         )
@@ -64,8 +65,10 @@ module SDBMan
       end
       
       def aws_connect
-        if @data.connect(key: @aws_key.value, secret: @aws_secret.value, region: @aws_region.value)
+        st = @data.connect(key: @aws_key.value, secret: @aws_secret.value, region: @aws_region.value)
+        if st
           @callbacks[:aws_connect].call unless @callbacks[:aws_connect].nil?
+          @logger.error "Failed to connect to SimpleDB, Error: #{st.message}" unless st == true
         end
       end
       
