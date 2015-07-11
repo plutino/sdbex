@@ -21,11 +21,10 @@ module SDBMan
         ).grid(row: 0, column: 0, sticky: 'nw')
         @aws_region = TkVariable.new
         region = Ttk::Combobox.new(@frame,
-          width: 23,
           values: @data.region_list,
           textvariable: @aws_region,
           state: 'readonly'
-        ).grid(row: 0, column: 1, sticky: 'ne')
+        ).grid(row: 0, column: 1, sticky: 'new')
         region.current = 0
 
         # access_key_id entry
@@ -34,9 +33,8 @@ module SDBMan
         ).grid(row: 1, column: 0, sticky: 'w')
         @aws_key = TkVariable.new
         Ttk::Entry.new(@frame, 
-          width: 25, 
           textvariable: @aws_key
-        ).grid(row: 1, column: 1, sticky: 'e')
+        ).grid(row: 1, column: 1, sticky: 'we')
         
         # secret_access_key entry
         Ttk::Label.new(@frame, 
@@ -44,10 +42,11 @@ module SDBMan
         ).grid(row: 2, column: 0, sticky: 'w')
         @aws_secret = TkVariable.new
         Ttk::Entry.new(@frame, 
-          width: 25, 
           show: '*', 
           textvariable: @aws_secret
-        ).grid(row: 2, column: 1, sticky: 'e')
+        ).grid(row: 2, column: 1, sticky: 'we')
+
+        TkGrid.columnconfigure @frame, 1, weight: 1
 
         # connect buttons
         Ttk::Button.new(@frame,
