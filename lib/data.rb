@@ -15,7 +15,7 @@ module SDBMan
 
     def connect key:, secret:, region: 'us-east-1'
       unless @sdb.nil?
-        return if key == @opts[:access_key_id] && secret == @opts[:secret_access_key] && region == @opts[:region]
+        return false if key == @opts[:access_key_id] && secret == @opts[:secret_access_key] && region == @opts[:region]
       end
     
       @opts.merge!({
@@ -25,14 +25,14 @@ module SDBMan
       }) 
     
       begin
-        @sdb = AWS::SimpleDB.new **@opts
+        @sdb = AWS::SimpleDB.new @opts
         set_domain domains.first
       rescue Exception => ex
         @sdb = nil
         @active_domain = nil
         raise ex
       end
-      nil
+      true
     end
   
     def domains
