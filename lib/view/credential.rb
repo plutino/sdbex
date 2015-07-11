@@ -1,3 +1,4 @@
+require 'yaml'
 require 'tk'
 
 module SDBMan
@@ -54,6 +55,10 @@ module SDBMan
           command: proc {self.aws_connect}
         ).grid(row: 3, column: 1, sticky: 'se')
         
+        # temporary default cred to help development
+        default_cred = YAML.load_file(File.expand_path('../../../credential.yml', __FILE__))
+        @aws_key.value = default_cred['key']
+        @aws_secret.value = default_cred['secret']
       end
       
       def on_connect callback
