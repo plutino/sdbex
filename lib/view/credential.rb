@@ -68,7 +68,13 @@ module SDBMan
         st = @data.connect(key: @aws_key.value, secret: @aws_secret.value, region: @aws_region.value)
         if st
           @callbacks[:aws_connect].call unless @callbacks[:aws_connect].nil?
-          @logger.error "Failed to connect to SimpleDB, Error: #{st.message}" unless st == true
+          if st == true
+            @logger.warn 'Connected to SimpleDB service.'
+          else
+            @logger.error "Failed to connect to SimpleDB, Error: #{st.message}" 
+          end
+        else
+          @logger.info 'Already connected to SimpleDB service.'
         end
       end
       

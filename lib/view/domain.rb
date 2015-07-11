@@ -53,6 +53,7 @@ module SDBMan
         if selected_domain != @data.active_domain
           @data.set_domain(selected_domain)
           @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
+          @logger.info "Switched to domain #{@data.active_domain}."
         end
       end
       

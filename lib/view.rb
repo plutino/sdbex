@@ -1,5 +1,6 @@
 require_relative 'view/credential'
 require_relative 'view/domain'
+require_relative 'view/item'
 require_relative 'view/logger'
 
 module SDBMan
@@ -56,9 +57,8 @@ module SDBMan
         @domain.on_change proc{on_domain_change}
         
         # item
-        Ttk::Label.new(item_frame,
-          text: 'Place holder for items'
-        ).pack(side: 'top', fill: 'both')
+        @item = Item.new(item_frame, data, @logger)
+        @item.frame.pack(expand: true, fill: 'both')
       end
       
       def run
@@ -66,12 +66,11 @@ module SDBMan
       end
       
       def on_aws_connect
-        @logger.warn 'Connected to SimpleDB service.'
         @domain.reload
       end
       
       def on_domain_change
-        @logger.info "Changed to domain #{@data.active_domain}; data items are refreshed."
+        @item.reload
       end
             
     end
