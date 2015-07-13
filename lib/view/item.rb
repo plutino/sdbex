@@ -1,7 +1,7 @@
 require 'tk'
 require 'tkextlib/tktable'
 
-module SDBMan
+module SdbEx
   module View
     class Item
 

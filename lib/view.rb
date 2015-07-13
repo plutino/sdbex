@@ -3,7 +3,7 @@ require_relative 'view/domain'
 require_relative 'view/item'
 require_relative 'view/logger'
 
-module SDBMan
+module SdbEx
   module View
     class Window
 

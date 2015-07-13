@@ -1,6 +1,6 @@
 require 'aws-sdk-v1'
 
-module SDBMan
+module SdbEx
   class Data
     
     AWS_REGIONS=['us-east-1', 'us-west-1', 'us-west-2']

@@ -1,6 +1,6 @@
 require 'tk'
 
-module SDBMan
+module SdbEx
   module View
     class Logger
 
