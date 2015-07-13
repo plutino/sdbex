@@ -2,6 +2,8 @@ require 'aws-sdk-v1'
 
 module SDBMan
   class Data
+    
+    AWS_REGIONS=['us-east-1', 'us-west-1', 'us-west-2']
   
     attr_reader :active_domain
   
@@ -12,8 +14,8 @@ module SDBMan
       @active_domain = nil          
     end
 
-    def region_list
-      ['us-east-1', 'us-west-1', 'us-west-2']
+    def aws_regions
+      AWS_REGIONS
     end
 
     # return true if connection changed

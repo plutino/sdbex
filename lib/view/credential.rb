@@ -21,7 +21,7 @@ module SDBMan
         ).grid(row: 0, column: 0, sticky: 'nw')
         @aws_region = TkVariable.new
         region = Ttk::Combobox.new(@frame,
-          values: @data.region_list,
+          values: @data.aws_regions,
           textvariable: @aws_region,
           state: 'readonly'
         ).grid(row: 0, column: 1, sticky: 'new')
