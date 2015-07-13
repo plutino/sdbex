@@ -54,7 +54,7 @@ module SdbEx
           command: proc {aws_connect}
         ).grid(row: 3, column: 1, sticky: 'se')
         
-        # temporary default cred to help development
+        # default cred to fill in when app starts
         default_cred = YAML.load_file(File.expand_path('../../../credential.yml', __FILE__))
         @aws_key.value = default_cred['key']
         @aws_secret.value = default_cred['secret']

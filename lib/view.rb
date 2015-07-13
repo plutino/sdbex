@@ -11,8 +11,8 @@ module SdbEx
         @data = data
         
         root = TkRoot.new(
-          title: 'SDBMan',
-          minsize: [600,400]
+          title: 'SdbEx',
+          minsize: [800,600]
         )
         TkGrid.columnconfigure root, 0, :weight => 1
         TkGrid.rowconfigure root, 0, :weight => 1

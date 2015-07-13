@@ -36,6 +36,9 @@ module SdbEx
         @item_tbl.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))
         TkGrid.columnconfigure @frame, 0, weight: 1
         TkGrid.rowconfigure @frame, 0, weight: 1
+        
+        @item_tbl.tag_configure('attribute', relief: :raised)
+        @item_tbl.tag_configure('item_name', bg: 'yellow')
       end
       
       def reload
@@ -48,7 +51,9 @@ module SdbEx
             row.each_with_index do |v, cidx|
               @items[ridx, cidx] = v unless v.nil?
             end
-          end            
+          end
+#          (1..(@item_tbl['cols']-1)).each {|cidx| @item_tbl.tag_cell('attribute', [1, cidx])}
+#          (1..(@item_tbl['rows']-1)).each {|ridx| @item_tbl.tag_cell('item_name', [ridx, 1])}         
         end
         
       end
