@@ -21,6 +21,8 @@ module SdbEx
           #borderwidth: 1,
           titlecols: 1,
           titlerows: 1,
+          cols: 0,
+          rows: 0,
           cache: true,
           font: TkFont.new(size: 14),
           colstretchmode: 'unset',
@@ -43,10 +45,12 @@ module SdbEx
       
       def reload
         d = @data.items
-        @item_tbl['cols'] = @data.attr_ct + 1
-        @item_tbl['rows'] = d.count
-
-        unless d.empty?
+        if d.empty?
+          @item_tbl['cols'] = 0
+          @item_tbl['rows'] = 0
+        else
+          @item_tbl['cols'] = d.first.count
+          @item_tbl['rows'] = d.count
           d.each_with_index do |row, ridx|
             row.each_with_index do |v, cidx|
               @items[ridx, cidx] = v unless v.nil?

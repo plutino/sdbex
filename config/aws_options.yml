@@ -1,0 +1,2 @@
+:use_ssl: true
+:simple_db_consistent_reads: true
