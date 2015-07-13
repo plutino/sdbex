@@ -15,9 +15,11 @@ module SDBMan
           height: 4,
           borderwidth: 0,
           selectmode: 'browse',
-          xscrollcommand: proc {|*args| @xscrollbar.set(*args)},          
+          xscrollcommand: proc {|*args| @xscrollbar.set(*args)},         
           yscrollcommand: proc {|*args| @yscrollbar.set(*args)}          
         ).grid(row: 0, column: 0, sticky: 'nwse')
+#        @log_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
+#        @log_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))
         @xscrollbar = Ttk::Scrollbar.new(@frame,
           orient: 'horizontal',
           command: proc {|*args| @log_list.xview(*args)}

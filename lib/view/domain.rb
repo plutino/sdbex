@@ -15,30 +15,32 @@ module SDBMan
           borderwidth: 0,
           padding: '5 0 5 5'
         )
-        @domain_list = TkVariable.new
-        @list = Tk::Listbox.new(@frame,
+        @domains = TkVariable.new
+        @domain_list = Tk::Listbox.new(@frame,
           borderwidth: 0,
-          listvariable: @domain_list,
+          listvariable: @domains,
           selectmode: 'browse',
-          xscrollcommand: proc {|*args| @xscrollbar.set(*args)},          
-          yscrollcommand: proc {|*args| @yscrollbar.set(*args)}          
+#          xscrollcommand: proc {|*args| @xscrollbar.set(*args)},          
+#          yscrollcommand: proc {|*args| @yscrollbar.set(*args)}          
         ).grid(row: 0, column: 0, sticky: 'nwse')
-        @xscrollbar = Ttk::Scrollbar.new(@frame,
-          orient: 'horizontal',
-          command: proc {|*args| @list.xview(*args)}
-        ).grid(row: 1, column: 0, sticky: 'nwse')
-        @yscrollbar = Ttk::Scrollbar.new(@frame,
-          orient: 'vertical',
-          command: proc {|*args| @list.yview(*args)}
-        ).grid(row: 0, column: 1, sticky: 'nwse')
+        @domain_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
+        @domain_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))        
+#        @xscrollbar = Ttk::Scrollbar.new(@frame,
+#          orient: 'horizontal',
+#          command: proc {|*args| @list.xview(*args)}
+#        ).grid(row: 1, column: 0, sticky: 'nwse')
+#        @yscrollbar = Ttk::Scrollbar.new(@frame,
+#          orient: 'vertical',
+#          command: proc {|*args| @list.yview(*args)}
+#        ).grid(row: 0, column: 1, sticky: 'nwse')
         TkGrid.columnconfigure @frame, 0, weight: 1
         TkGrid.rowconfigure @frame, 0, weight: 1
         
-        @list.bind '<ListboxSelect>', proc { domain_selected }
+        @domain_list.bind '<ListboxSelect>', proc { domain_selected }
       end
       
       def reload 
-        @domain_list.value = @data.domains
+        @domains.value = @data.domains
 
         #todo do we need this?
 #        unless @data.active_domain.nil?
@@ -49,7 +51,7 @@ module SDBMan
       end
       
       def domain_selected
-        selected_domain = @domain_list.value.split[@list.curselection.first]
+        selected_domain = @domains.value.split[@domain_list.curselection.first]
         if selected_domain != @data.active_domain
           @data.set_domain(selected_domain)
           @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
