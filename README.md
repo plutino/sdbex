@@ -1,6 +1,6 @@
 ### SdbEx
 
-`sdbex` is a Ruby/Tk application to view AWS SimpleDB data.
+A Ruby/Tk application to view AWS SimpleDB data.
 
 `sdbex` is still under development.  If you want to try it out, try these steps:
 
@@ -16,4 +16,4 @@
 
         bundle exec bin/sbdex
         
-* Enjoy and [report](mailto:plutino@gmail.com) any bugs.
+* Enjoy and [report](https://github.com/plutino/sdbex/issues) any bugs.
