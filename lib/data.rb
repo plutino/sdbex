@@ -5,14 +5,14 @@ module SdbEx
     
     AWS_REGIONS=['us-east-1', 'us-west-1', 'us-west-2']
   
-    attr_reader :active_domain
+    attr_reader :active_domain, :query
   
     def initialize **options
       @page_size = options.delete(:page_size) || 100
       @aws_opts = options || {}
       @sdb = nil
       @active_domain = nil  
-      @query = nil        
+      @query = {}
     end
 
     def aws_regions
@@ -53,31 +53,44 @@ module SdbEx
     def set_domain domain
       unless @sdb.nil?
         @active_domain = domain
+        @query = { select: '*'}
       end
     end
     
-    def attr_ct
-      if @active_domain.nil?
-        0
-      else
-        @sdb.domains[@active_domain].metadata.attribute_name_count
+    def set_query select: '*', where: nil, order_by: nil, order: :asc
+      return false if @sdb.nil? || @active_domain.nil?
+      select.strip!
+      new_query= {
+        select: select == '*' ? '*' : select.split(/[\s,]+/),
+        where: where && where.strip,
+        order_by: order_by && order_by.strip,
+        order: order
+      }
+      begin 
+        items = get_items(new_query)
+      rescue Exception => ex
+        return ex
       end
+      @query = new_query
+      @items = items
+      true
     end
       
-    def set_query query
-      return if @sdb.nil? || @active_domain.nil?
-      if query.empty?
-        @query = nil
-      else
-        @query = query
-      end
-    end
-      
-    def items
+    def items 
       return [] if @active_domain.nil? 
+      @items ||= get_items(@query)       
+    end
+    
+    private
+    
+    def get_items query
+      coll = @sdb.domains[@active_domain].items.select(query[:select])
+      coll = coll.where(query[:where]) unless query[:where].nil?
+      coll = coll.order(query[:order_by], query[:order]) unless query[:order_by].nil?
+      
       header = []
       data = []
-      @sdb.domains[@active_domain].items.select(:all).each do |item|
+      coll.each do |item|
         line = [item.name]
         attrs = item.attributes.dup
         line += header.map { |key| strip_value(attrs.delete(key)) } 
@@ -88,10 +101,9 @@ module SdbEx
         data << line
       end
       return [] if data.empty?
-      [[''] + header] + data
+      [[''] + header] + data      
     end
-    
-    private
+      
     
     def strip_value value
       if !value.nil? && value.size == 1
