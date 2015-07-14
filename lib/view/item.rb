@@ -17,18 +17,45 @@ module SdbEx
           padding: '5'
         )
         
+        # query interface
         top_frame = Ttk::Frame.new(@frame).grid(row: 0, column: 0, columnspan: 2, sticky:'nwse')
-        @query = TkVariable.new
-        @query_history = []
-        @query_box = Ttk::Combobox.new(top_frame,
-          textvariable: @query,
-#          postcommand: proc {update_query_history}
+        Ttk::Label.new(top_frame,
+          text: 'SELECT'
+        ).pack(side: 'left')
+        @select = TkVariable.new
+        Ttk::Entry.new(top_frame,
+          width: 10,
+          textvariable: @select,
         ).pack(side: 'left', expand: true, fill: 'x')
+        Ttk::Label.new(top_frame,
+          text: 'WHERE'
+        ).pack(side: 'left')
+        @where = TkVariable.new
+        Ttk::Entry.new(top_frame,        
+          width: 20,
+          textvariable: @where
+        ).pack(side: 'left', expand: true, fill: 'x')
+        Ttk::Label.new(top_frame,
+          text: 'ORDER BY'
+        ).pack(side: 'left')
+        @order_by = TkVariable.new
+        Ttk::Entry.new(top_frame,        
+          width: 10,
+          textvariable: @order_by
+        ).pack(side: 'left')
+        @order = TkVariable.new
+        Ttk::Combobox.new(top_frame,
+          values: @data.item_orders,
+          width: 5,
+          textvariable: @order,
+          state: :readonly
+        ).pack(side: 'left').current = 0
         Ttk::Button.new(top_frame,
           text: 'Query',
-          command: proc {query}
+          command: proc {do_query}
         ).pack
-                        
+        
+        # item view    
         @items = TkVariable.new_hash
         @item_tbl = Tk::TkTable.new(@frame,
           titlecols: 1,
@@ -57,7 +84,35 @@ module SdbEx
         @item_tbl.tag_configure('item_name', bg: 'yellow')
       end
       
-      def reload
+      def change_domain
+        @select.value = @data.query[:select]
+        @where.value = @data.query[:where]
+        @order_by.value = @data.query[:order_by]
+        @order.value = @data.query[:order].upcase
+        reload
+      end
+      
+      def do_query
+        opts = {}
+        select = @select.value.strip
+        opts[:select] = select unless select.empty?
+        where = @where.value.strip
+        opts[:where] = where unless where.empty?
+        order_by = @order_by.value.strip
+        opts[:order_by] = order_by unless order_by.empty?
+        opts[:order] = @order.value.downcase
+        st = @data.set_query **opts
+        if st == true
+          reload
+          @logger.info "Items updated for new query."
+        elsif st != false
+          @logger.error st.message      
+        end
+      end
+      
+      private
+      
+      def reload        
         d = @data.items
         if d.empty?
           @item_tbl['cols'] = 0
@@ -67,27 +122,11 @@ module SdbEx
           @item_tbl['rows'] = d.count
           d.each_with_index do |row, ridx|
             row.each_with_index do |v, cidx|
-              @items[ridx, cidx] = v unless v.nil?
+              @items[ridx, cidx] = v.nil? ? '' : v
             end
           end
-        end
-        
+        end        
       end
-      
-      def query
-        q = @query.value.strip
-        @query_history.delete(q) if @query_history.include?(q) 
-        @query_history.unshift(q)
-        @query_history.shift while @query_history.count > QUERY_HISTORY_SIZE
-        @query_box['values'] = @query_history
-        @data.set_query q
-        reload
-      end
-      
-#      def update_query_history
-#        puts @query_history.inspect
-#        @query_box['values'] = @query_history unless @query_history.empty?
-#      end
       
     end
   end

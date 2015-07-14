@@ -4,6 +4,7 @@ module SdbEx
   class Data
     
     AWS_REGIONS=['us-east-1', 'us-west-1', 'us-west-2']
+    ITEM_ORDER_TYPE=['ASC', 'DESC']
   
     attr_reader :active_domain, :query
   
@@ -17,6 +18,10 @@ module SdbEx
 
     def aws_regions
       AWS_REGIONS
+    end
+    
+    def item_orders
+      ITEM_ORDER_TYPE
     end
 
     # return true if connection changed
@@ -51,19 +56,19 @@ module SdbEx
     end
 
     def set_domain domain
-      unless @sdb.nil?
+      unless @sdb.nil? || @active_domain == domain
         @active_domain = domain
-        @query = { select: '*'}
+        @query = { select: '*', order: :asc}
+        @items = nil
       end
     end
     
-    def set_query select: '*', where: nil, order_by: nil, order: :asc
+    def set_query select: '*', where: nil, order_by: nil, order: 'asc'
       return false if @sdb.nil? || @active_domain.nil?
-      select.strip!
       new_query= {
         select: select == '*' ? '*' : select.split(/[\s,]+/),
-        where: where && where.strip,
-        order_by: order_by && order_by.strip,
+        where: where,
+        order_by: order_by,
         order: order
       }
       begin 
@@ -101,7 +106,7 @@ module SdbEx
         data << line
       end
       return [] if data.empty?
-      [[''] + header] + data      
+      [['Item'] + header] + data      
     end
       
     

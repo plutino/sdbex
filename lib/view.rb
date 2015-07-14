@@ -12,7 +12,7 @@ module SdbEx
         
         root = TkRoot.new(
           title: 'SdbEx',
-          minsize: [800,600]
+          minsize: [900,600]
         )
         TkGrid.columnconfigure root, 0, :weight => 1
         TkGrid.rowconfigure root, 0, :weight => 1
@@ -70,7 +70,7 @@ module SdbEx
       end
       
       def on_domain_change
-        @item.reload
+        @item.change_domain
       end
             
     end
