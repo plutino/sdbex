@@ -11,7 +11,8 @@ module SdbEx
       @page_size = options.delete(:page_size) || 100
       @aws_opts = options || {}
       @sdb = nil
-      @active_domain = nil          
+      @active_domain = nil  
+      @query = nil        
     end
 
     def aws_regions
@@ -38,6 +39,7 @@ module SdbEx
       rescue Exception => ex
         @sdb = nil
         @active_domain = nil
+        @query = nil
         return ex
       end
       true
@@ -62,6 +64,15 @@ module SdbEx
       end
     end
       
+    def set_query query
+      return if @sdb.nil? || @active_domain.nil?
+      if query.empty?
+        @query = nil
+      else
+        @query = query
+      end
+    end
+      
     def items
       return [] if @active_domain.nil? 
       header = []
@@ -77,7 +88,7 @@ module SdbEx
         data << line
       end
       return [] if data.empty?
-      [['Item'] + header] + data
+      [[''] + header] + data
     end
     
     private
