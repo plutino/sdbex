@@ -66,9 +66,9 @@ module SdbEx
       return [] if @active_domain.nil? 
       header = []
       data = []
-      @sdb.domains[@active_domain].items.each do |item|
+      @sdb.domains[@active_domain].items.select(:all).each do |item|
         line = [item.name]
-        attrs = item.attributes.to_h
+        attrs = item.attributes.dup
         line += header.map { |key| strip_value(attrs.delete(key)) } 
         attrs.each do |k, v| 
           header << k
