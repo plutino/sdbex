@@ -37,7 +37,10 @@ module SdbEx
         @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
         @domain_menu.add :separator
         @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
+        @domain_menu.add :command, label: 'Refresh domain', command: proc { refresh_domain }
         
+        @selected_domain = nil
+        @active_domain = nil
       end
       
       def on_change callback
@@ -46,6 +49,9 @@ module SdbEx
             
       def reload 
         @domains.value = @data.domains
+        fgc = @domain_list.cget('fg')
+        bgc = @domain_list.cget('bg')
+        @domain_list.size.times {|idx| @domain_list.itemconfigure idx, fg: fgc, bg: bgc}
 
         #todo do we need this?
 #        unless @data.active_domain.nil?
@@ -57,14 +63,19 @@ module SdbEx
       
       def popup_menu x, y
         set_selected_domain x, y
+        @domain_list.update
         @domain_menu.popup x, y
       end
       
       def activate_domain x = nil, y = nil
-        set_selected_domain(x, y)  unless x.nil? || y.nil?
-        if @selected_domain != @data.active_domain
-          @data.set_domain(@selected_domain)
-          @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
+        set_selected_domain(x, y)  unless x.nil? || y.nil?        
+        if @selected_domain != @active_domain
+          unless @active_domain.nil?
+            curselect = @domains.value.split.find_index(@active_domain)
+            @domain_list.itemconfigure(curselect, fg: @domain_list.cget('fg'), bg: @domain_list.cget('bg'))
+          end
+          @domain_list.itemconfigure('active', fg: 'blue', bg: 'yellow')
+          set_active_domain @selected_domain
           @logger.info "Switched to domain #{@selected_domain}."
         end
       end
@@ -86,15 +97,28 @@ module SdbEx
           @logger.warn "Domain `#{@selected_domain}' deleted and all items within it purged."
         end
       end
+      
+      def refresh_domain
+        set_active_domain nil
+        reload
+      end
             
       private
       
       def set_selected_domain x,y
         idx = "@#{x-@domain_list.winfo_rootx},#{y-@domain_list.winfo_rooty}"
+        @domain_list.activate idx
         @domain_list.selection_clear 0, 'end'
         @domain_list.selection_set idx
         @selected_domain = @domain_list.get(idx)
       end
+
+      def set_active_domain domain
+        @active_domain = domain
+        @data.set_domain domain
+        @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
+      end
+        
             
     end
   end

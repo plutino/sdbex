@@ -122,7 +122,7 @@ module SdbEx
           @item_tbl['rows'] = d.count
           d.each_with_index do |row, ridx|
             row.each_with_index do |v, cidx|
-              @items[ridx, cidx] = v.nil? ? '' : v
+              @items[ridx, cidx] = v.nil? ? 'null' : v
             end
           end
         end        
