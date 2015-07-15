@@ -29,13 +29,14 @@ module SdbEx
         TkGrid.rowconfigure @frame, 0, weight: 1
         
         @domain_list.bind 'Double-1', proc { |x,y| activate_domain(x,y) }, "%X %Y"
-#        @domain_list.bind 'Enter', proc { activate_domain }
         @domain_list.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"
 
         # popup menu
         @domain_menu = TkMenu.new(@domain_list)
-        @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
+        @domain_menu.add :command, label: 'Show items', command: proc { activate_domain }        
         @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
+        @domain_menu.add :separator
+        @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
         
       end
       
@@ -60,11 +61,7 @@ module SdbEx
       end
       
       def activate_domain x = nil, y = nil
-        if x.nil? || y.nil?
-          @selected_domain = @domains.value.split[@domain_list.curselection.first]
-        else
-          set_selected_domain x, y
-        end
+        set_selected_domain(x, y)  unless x.nil? || y.nil?
         if @selected_domain != @data.active_domain
           @data.set_domain(@selected_domain)
           @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
@@ -94,6 +91,7 @@ module SdbEx
       
       def set_selected_domain x,y
         idx = "@#{x-@domain_list.winfo_rootx},#{y-@domain_list.winfo_rooty}"
+        @domain_list.selection_clear 0, 'end'
         @domain_list.selection_set idx
         @selected_domain = @domain_list.get(idx)
       end
