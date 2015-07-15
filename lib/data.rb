@@ -63,6 +63,11 @@ module SdbEx
       end
     end
     
+    def delete_domain domain
+      @sdb.domains[domain].delete!
+      @active_domain = nil if @active_domain == domain
+    end
+    
     def set_query select: '*', where: nil, order_by: nil, order: 'asc'
       return false if @sdb.nil? || @active_domain.nil?
       new_query= {

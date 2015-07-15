@@ -35,7 +35,7 @@ module SdbEx
           borderwidth: 2,
           relief: 'groove'          
         )
-        v_pane.add(item_frame, weight: 4)                
+        v_pane.add(item_frame, weight: 5)                
         log_frame = Ttk::Frame.new(v_pane,
           borderwidth: 2,
           relief: 'groove'          

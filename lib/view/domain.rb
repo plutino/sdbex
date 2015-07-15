@@ -15,30 +15,34 @@ module SdbEx
           borderwidth: 0,
           padding: '5 0 5 5'
         )
+        
+        # domains list
         @domains = TkVariable.new
         @domain_list = Tk::Listbox.new(@frame,
           borderwidth: 0,
           listvariable: @domains,
-          selectmode: 'browse',
-#          xscrollcommand: proc {|*args| @xscrollbar.set(*args)},          
-#          yscrollcommand: proc {|*args| @yscrollbar.set(*args)}          
+          selectmode: 'single',
         ).grid(row: 0, column: 0, sticky: 'nwse')
         @domain_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
         @domain_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))        
-#        @xscrollbar = Ttk::Scrollbar.new(@frame,
-#          orient: 'horizontal',
-#          command: proc {|*args| @list.xview(*args)}
-#        ).grid(row: 1, column: 0, sticky: 'nwse')
-#        @yscrollbar = Ttk::Scrollbar.new(@frame,
-#          orient: 'vertical',
-#          command: proc {|*args| @list.yview(*args)}
-#        ).grid(row: 0, column: 1, sticky: 'nwse')
         TkGrid.columnconfigure @frame, 0, weight: 1
         TkGrid.rowconfigure @frame, 0, weight: 1
         
-        @domain_list.bind '<ListboxSelect>', proc { domain_selected }
+        @domain_list.bind 'Double-1', proc { |x,y| activate_domain(x,y) }, "%X %Y"
+#        @domain_list.bind 'Enter', proc { activate_domain }
+        @domain_list.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"
+
+        # popup menu
+        @domain_menu = TkMenu.new(@domain_list)
+        @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
+        @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
+        
       end
       
+      def on_change callback
+        @callbacks[:domain_changed] = callback
+      end
+            
       def reload 
         @domains.value = @data.domains
 
@@ -50,19 +54,50 @@ module SdbEx
 #        end
       end
       
-      def domain_selected
-        selected_domain = @domains.value.split[@domain_list.curselection.first]
-        if selected_domain != @data.active_domain
-          @data.set_domain(selected_domain)
+      def popup_menu x, y
+        set_selected_domain x, y
+        @domain_menu.popup x, y
+      end
+      
+      def activate_domain x = nil, y = nil
+        if x.nil? || y.nil?
+          @selected_domain = @domains.value.split[@domain_list.curselection.first]
+        else
+          set_selected_domain x, y
+        end
+        if @selected_domain != @data.active_domain
+          @data.set_domain(@selected_domain)
           @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
-          @logger.info "Switched to domain #{@data.active_domain}."
+          @logger.info "Switched to domain #{@selected_domain}."
         end
       end
       
-      def on_change callback
-        @callbacks[:domain_changed] = callback
+      def create_domain
       end
       
+      def delete_domain
+        confirmation = Tk::messageBox(
+          type: 'yesno',
+          title: 'Domain deletion', 
+          message: "Do you want to delete domain `#{@selected_domain}' and all items within it?", 
+          icon: 'warning'
+        )
+
+        if confirmation == 'yes'
+          @data.delete_domain(@selected_domain)
+          reload
+          @logger.warn "Domain `#{@selected_domain}' deleted and all items within it purged."
+        end
+      end
+            
+      private
+      
+      def set_selected_domain x,y
+        idx = "@#{x-@domain_list.winfo_rootx},#{y-@domain_list.winfo_rooty}"
+        @domain_list.selection_set idx
+        @selected_domain = @domain_list.get(idx)
+      end
+            
     end
   end
 end
