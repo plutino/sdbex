@@ -20,9 +20,6 @@ A Ruby/Tk application to view AWS SimpleDB data.
 
 #### TODO
 
-* Readonly mode
-* Reload domains
-* Delete domains
 * Create domain
 * Reload items
 * Delete items
