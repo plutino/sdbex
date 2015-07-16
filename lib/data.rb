@@ -58,7 +58,7 @@ module SdbEx
     def set_domain domain
       unless @sdb.nil? || @active_domain == domain
         @active_domain = domain
-        @query = { select: '*', order: :asc}
+        @query = { select: '*', order: 'asc'}
         @items = nil
       end
     end
@@ -66,6 +66,10 @@ module SdbEx
     def delete_domain domain
       @sdb.domains[domain].delete!
       @active_domain = nil if @active_domain == domain
+    end
+
+    def create_domain domain
+      @sdb.domains.create domain
     end
     
     def set_query select: '*', where: nil, order_by: nil, order: 'asc'
