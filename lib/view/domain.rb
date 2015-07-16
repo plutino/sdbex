@@ -32,19 +32,19 @@ module SdbEx
         @domain_list.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"
 
         # popup menu
-        @domain_menu = TkMenu.new(@domain_list)
-        @domain_menu.add :command, label: 'Show items', command: proc { activate_domain }        
-        @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
-        @domain_menu.add :separator
-        @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
-        @domain_menu.add :command, label: 'Refresh domain', command: proc { refresh_domain }
-        
+        build_menu
+
         @selected_domain = nil
         @active_domain = nil
       end
       
-      def on_change callback
+      def on_changed callback
         @callbacks[:domain_changed] = callback
+      end
+      
+      def set_sdb_write_permission perm
+        @allow_sdb_write = perm
+        build_menu
       end
             
       def reload 
@@ -105,6 +105,17 @@ module SdbEx
             
       private
       
+      # build popup menu
+      def build_menu
+        @domain_menu = TkMenu.new(@domain_list)
+        @domain_menu.add :command, label: 'Show items', command: proc { activate_domain }        
+        @domain_menu.add :command, label: 'Refresh', command: proc { refresh_domain }  
+        if @allow_sdb_write      
+          @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
+          @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
+        end
+      end
+
       def set_selected_domain x,y
         idx = "@#{x-@domain_list.winfo_rootx},#{y-@domain_list.winfo_rooty}"
         @domain_list.activate idx

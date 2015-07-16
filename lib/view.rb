@@ -49,12 +49,13 @@ module SdbEx
         # credential
         cred = Credential.new(left_frame, data, @logger)
         cred.frame.pack(side: 'top', fill: 'x')
-        cred.on_connect proc{on_aws_connect}
+        cred.on_aws_connected proc{ aws_connected }
+        cred.on_sdb_write_permission_changed proc{|perm| sdb_write_permission_changed(perm)}
 
         # domain
         @domain = Domain.new(left_frame, data, @logger)
         @domain.frame.pack(expand: true, fill: 'both')
-        @domain.on_change proc{on_domain_change}
+        @domain.on_changed proc{domain_changed}
         
         # item
         @item = Item.new(item_frame, data, @logger)
@@ -65,12 +66,17 @@ module SdbEx
         Tk.mainloop
       end
       
-      def on_aws_connect
+      def aws_connected
         @domain.reload
       end
       
-      def on_domain_change
+      def domain_changed
         @item.change_domain
+      end
+      
+      def sdb_write_permission_changed permission
+        @domain.set_sdb_write_permission(permission)
+        @item.set_sdb_write_permission(permission)
       end
             
     end

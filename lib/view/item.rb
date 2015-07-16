@@ -84,6 +84,10 @@ module SdbEx
         @item_tbl.tag_configure('item_name', bg: 'yellow')
       end
       
+      def set_sdb_write_permission perm
+        @allow_sdb_write = perm
+      end
+
       def change_domain
         @select.value = @data.query[:select]
         @where.value = @data.query[:where]
