@@ -9,7 +9,12 @@ module SdbEx
       def initialize parent, data, logger
         @callbacks = {}
         @data = data        
-        @logger = logger
+        @logger = logger   
+        
+        @selected_domain = nil
+        @active_domain = nil
+        @allow_sdb_write = false        
+             
         @frame = Ttk::LabelFrame.new(parent,
           text: 'Domains:',
           borderwidth: 0,
@@ -17,25 +22,10 @@ module SdbEx
         )
         
         # domains list
-        @domains = TkVariable.new
-        @domain_list = Tk::Listbox.new(@frame,
-          borderwidth: 0,
-          listvariable: @domains,
-          selectmode: 'single',
-        ).grid(row: 0, column: 0, sticky: 'nwse')
-        @domain_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
-        @domain_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))        
-        TkGrid.columnconfigure @frame, 0, weight: 1
-        TkGrid.rowconfigure @frame, 0, weight: 1
+        build_domain_list
         
-        @domain_list.bind 'Double-1', proc { |x,y| activate_domain(x,y) }, "%X %Y"
-        @domain_list.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"
-
         # popup menu
         build_menu
-
-        @selected_domain = nil
-        @active_domain = nil
       end
       
       def on_changed callback
@@ -104,6 +94,23 @@ module SdbEx
       end
             
       private
+      
+      # build domain list
+      def build_domain_list
+        @domains = TkVariable.new
+        @domain_list = Tk::Listbox.new(@frame,
+          borderwidth: 0,
+          listvariable: @domains,
+          selectmode: 'browse',
+        ).grid(row: 0, column: 0, sticky: 'nwse')
+        @domain_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
+        @domain_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))        
+        TkGrid.columnconfigure @frame, 0, weight: 1
+        TkGrid.rowconfigure @frame, 0, weight: 1
+        
+        @domain_list.bind 'Double-1', proc { |x,y| activate_domain(x,y) }, "%X %Y"
+        @domain_list.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"        
+      end
       
       # build popup menu
       def build_menu

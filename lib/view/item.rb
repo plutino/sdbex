@@ -69,9 +69,9 @@ module SdbEx
           #multiline: false,
           colstretchmode: 'unset',
           drawmode: 'slow',
-          #state: :disabled,
+          state: :disabled,
           selecttype: 'row',
-          selectmode: 'extended',
+          selectmode: 'browse',
           variable: @items,
           sparsearray: false,
         ).grid(row: 1, column: 0, sticky: 'nwse')
@@ -82,6 +82,8 @@ module SdbEx
         
         @item_tbl.tag_configure('attribute', relief: :raised)
         @item_tbl.tag_configure('item_name', bg: 'yellow')
+        
+        @allow_sdb_write = false
       end
       
       def set_sdb_write_permission perm
