@@ -18,11 +18,13 @@ A Ruby/Tk application to view AWS SimpleDB data.
         
 * Enjoy and [report](https://github.com/plutino/sdbex/issues) any bugs.
 
-#### TODO
+#### TODO (prioritized)
 
 * Create domain
 * Reload items
 * Delete items
-* Edit items
 * Add item
+* Edit items
+* Load items in batches
+* Stand-alone app release
 * Undo history
