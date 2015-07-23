@@ -1,4 +1,5 @@
 require 'tk'
+require_relative 'dialog'
 
 module SdbEx
   module View
@@ -43,12 +44,10 @@ module SdbEx
         bgc = @domain_list.cget('bg')
         @domain_list.size.times {|idx| @domain_list.itemconfigure idx, fg: fgc, bg: bgc}
 
-        #todo do we need this?
-#        unless @data.active_domain.nil?
-#          idx = @domain_list.split.find_index(@data.active_domain)
-#          @list.see idx
-#          @list.selection_set idx
-#        end
+        unless @data.active_domain.nil?
+          idx = @domains.value.split.find_index(@data.active_domain)
+          @domain_list.itemconfigure idx, fg: 'blue', bg: 'yellow'
+        end
       end
       
       def popup_menu x, y
@@ -71,6 +70,20 @@ module SdbEx
       end
       
       def create_domain
+        dialog = Dialog.new(@frame, title: 'Create Domain')
+        domain_name = TkVariable.new
+        dialog.build do |parent|
+          Ttk::Label.new(parent,
+            text: 'Domain Name: '
+          ).pack(side: 'left')
+          Ttk::Entry.new(parent,
+            textvariable: domain_name
+          ).pack(side: 'left')
+        end
+        if dialog.run
+          @data.create_domain(domain_name.value) 
+          reload
+        end
       end
       
       def delete_domain
