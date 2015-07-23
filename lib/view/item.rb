@@ -18,42 +18,8 @@ module SdbEx
         )
         
         # query interface
-        top_frame = Ttk::Frame.new(@frame).grid(row: 0, column: 0, columnspan: 2, sticky:'nwse')
-        Ttk::Label.new(top_frame,
-          text: 'SELECT'
-        ).pack(side: 'left')
-        @select = TkVariable.new
-        Ttk::Entry.new(top_frame,
-          width: 10,
-          textvariable: @select,
-        ).pack(side: 'left', expand: true, fill: 'x')
-        Ttk::Label.new(top_frame,
-          text: 'WHERE'
-        ).pack(side: 'left')
-        @where = TkVariable.new
-        Ttk::Entry.new(top_frame,        
-          width: 20,
-          textvariable: @where
-        ).pack(side: 'left', expand: true, fill: 'x')
-        Ttk::Label.new(top_frame,
-          text: 'ORDER BY'
-        ).pack(side: 'left')
-        @order_by = TkVariable.new
-        Ttk::Entry.new(top_frame,        
-          width: 10,
-          textvariable: @order_by
-        ).pack(side: 'left')
-        @order = TkVariable.new
-        Ttk::Combobox.new(top_frame,
-          values: @data.item_orders,
-          width: 5,
-          textvariable: @order,
-          state: :readonly
-        ).pack(side: 'left').current = 0
-        Ttk::Button.new(top_frame,
-          text: 'Query',
-          command: proc {do_query}
-        ).pack
+        query_frame = Ttk::Frame.new(@frame).grid(row: 0, column: 0, columnspan: 2, sticky:'nwse')
+        build_query_interface(query_frame)
         
         # item view    
         @items = TkVariable.new_hash
@@ -80,8 +46,13 @@ module SdbEx
         TkGrid.columnconfigure @frame, 0, weight: 1
         TkGrid.rowconfigure @frame, 1, weight: 1
         
+        @item_tbl.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"   
+        
         @item_tbl.tag_configure('attribute', relief: :raised)
         @item_tbl.tag_configure('item_name', bg: 'yellow')
+        
+        # popup menu
+        build_menu @item_tbl
         
         @allow_sdb_write = false
       end
@@ -96,6 +67,10 @@ module SdbEx
         @order_by.value = @data.query[:order_by]
         @order.value = @data.query[:order].upcase
         reload
+      end
+      
+      def popup_menu x, y
+        @item_menu.popup x, y
       end
       
       def do_query
@@ -133,6 +108,56 @@ module SdbEx
           end
         end        
       end
+      
+      # build query interface
+      def build_query_interface(frame)
+        Ttk::Label.new(frame,
+          text: 'SELECT'
+        ).pack(side: 'left')
+        @select = TkVariable.new
+        Ttk::Entry.new(frame,
+          width: 10,
+          textvariable: @select,
+        ).pack(side: 'left', expand: true, fill: 'x')
+        Ttk::Label.new(frame,
+          text: 'WHERE'
+        ).pack(side: 'left')
+        @where = TkVariable.new
+        Ttk::Entry.new(frame,        
+          width: 20,
+          textvariable: @where
+        ).pack(side: 'left', expand: true, fill: 'x')
+        Ttk::Label.new(frame,
+          text: 'ORDER BY'
+        ).pack(side: 'left')
+        @order_by = TkVariable.new
+        Ttk::Entry.new(frame,        
+          width: 10,
+          textvariable: @order_by
+        ).pack(side: 'left')
+        @order = TkVariable.new
+        Ttk::Combobox.new(frame,
+          values: @data.item_orders,
+          width: 5,
+          textvariable: @order,
+          state: :readonly
+        ).pack(side: 'left').current = 0
+        Ttk::Button.new(frame,
+          text: 'Query',
+          command: proc {do_query}
+        ).pack        
+      end
+      
+      # build popup menu
+      def build_menu(parent)
+        @item_menu = TkMenu.new(parent)
+        @item_menu.add :command, label: 'Refresh', command: proc { refresh }  
+        if @allow_sdb_write      
+          @item_menu.add :command, label: 'Add item', command: proc { add_item }
+          @item_menu.add :command, label: 'Delete items', command: proc { delete_item }
+        end
+      end
+      
       
     end
   end
