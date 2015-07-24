@@ -77,7 +77,8 @@ module SdbEx
             text: 'Domain Name: '
           ).pack(side: 'left')
           Ttk::Entry.new(parent,
-            textvariable: domain_name
+            textvariable: domain_name,
+            width: 15
           ).pack(side: 'left')
         end
         if dialog.run
