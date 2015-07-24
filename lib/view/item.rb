@@ -55,8 +55,7 @@ module SdbEx
         build_menu @item_tbl
         
         @allow_sdb_write = false
-        @item_data = nil
-                 
+        @item_data = nil                 
       end
       
       def set_sdb_write_permission perm
@@ -95,6 +94,40 @@ module SdbEx
         end
       end
       
+      def add_attr
+        dialog = Dialog.new(@item_tbl, title: 'Add Attribute')
+        attr_name = TkVariable.new
+        dialog.build do |parent|
+          Ttk::Label.new(parent,
+            text: 'Attribute name: '
+          ).pack(side: 'left')
+          Ttk::Entry.new(parent,
+            textvariable: attr_name,
+            width: 15
+          ).pack(side: 'left')
+        end
+        
+        if dialog.run && !(attr_n = attr_name.value).empty? 
+          if @item_data[:attrs].include? attr_n
+            Tk.messageBox(
+              type: 'ok',
+              title: 'Duplicate attribute',
+              message: "Attribute #{attr_n} already exists in the domain.",
+              icon: 'warning'
+            )
+          else
+            @item_tbl.insert_cols 'end', 1
+            @item_data[:attrs] << attr_n 
+            @item_data[:items].each do |name, item|
+              item[:data] << nil
+            end
+            @items[0, @item_data[:attrs].count] = attr_n    
+            @item_tbl.update   
+            @logger.info "New attribute #{attr_n} is queued to be added."       
+          end
+        end        
+      end
+      
       def add_item
         dialog = Dialog.new(@item_tbl, title: 'Add Item')
         item_name = TkVariable.new
@@ -107,13 +140,13 @@ module SdbEx
             width: 15
           ).pack(side: 'left')
         end
-        
-        if dialog.run && !item_name.value.empty? 
-          if @item_data[:items].keys.include? item_name.value
+                
+        if dialog.run && !(item_n = item_name.value).empty? 
+          if @item_data[:items].keys.include? item_n
             Tk.messageBox(
               type: 'ok',
               title: 'Duplicate item',
-              message: 'Item name already exist in the domain.',
+              message: "Item #{item_n} already exists in the domain.",
               icon: 'warning'
             )
           else
@@ -121,10 +154,10 @@ module SdbEx
             item = {}
             item[:status] = :new
             item[:data] = [nil] * @item_data[:attrs].count            
-            @item_data[:items][item_name.value] = item
-            @items[@item_data[:items].count, 0] = item_name.value        
+            @item_data[:items][item_n] = item
+            @items[@item_data[:items].count, 0] = item_n
             @item_tbl.update   
-            @logger.info "New item #{item_name.value} is queued to be added."       
+            @logger.info "New item #{item_n} is queued to be added."       
           end
         end        
       end
@@ -234,7 +267,7 @@ module SdbEx
         @item_menu.add :command, label: 'Refresh', command: proc { refresh }  
         if @allow_sdb_write      
           @item_menu.add :separator
-#          @item_menu.add :command, label: 'Add attribute', command: proc{ add_attr }
+          @item_menu.add :command, label: 'Add attribute', command: proc{ add_attr }
           @item_menu.add :command, label: 'Add item', command: proc{ add_item }
           @item_menu.add :command, label: 'Delete selected items', command: proc{ delete_items }
 #          @item_menu.add :command, label: 'Reset attribute', command: proc { reset_attr }
