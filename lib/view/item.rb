@@ -40,6 +40,7 @@ module SdbEx
           selecttitle: true,
           variable: @items,
           sparsearray: false,
+#          rowtagcommand: proc{ |row| set_row_style(row) }
         ).grid(row: 1, column: 0, sticky: 'nwse')
         @item_tbl.xscrollbar(Tk::Scrollbar.new(@frame).grid(row: 2, column: 0, sticky: 'nwse'))
         @item_tbl.yscrollbar(Tk::Scrollbar.new(@frame).grid(row: 1, column: 1, sticky: 'nwse'))
@@ -92,6 +93,10 @@ module SdbEx
         elsif st != false
           @logger.error st.message      
         end
+      end
+      
+      def set_row_style
+        
       end
       
       def add_attr
@@ -206,11 +211,10 @@ module SdbEx
           @item_tbl['rows'] = @item_data[:items].count + 1
           @items[0,0] = 'Item'
           @item_data[:attrs].each_with_index { |v, idx| @items[0, idx+1] = v}
-          ridx = 1
-          @item_data[:items].each do |name, item|
-            @items[ridx, 0] = name
+          @item_data[:items].each_with_index do |item, ridx|
+            @items[ridx+1, 0] = item[:name]
             item[:data].each_with_index do |v, idx| 
-              @items[ridx, idx+1] = v.nil? ? 'null' : v
+              @items[ridx+1, idx+1] = v
             end
             if item[:status] == :deleted
               @item_tbl.tag_row 'deleted_items', ridx

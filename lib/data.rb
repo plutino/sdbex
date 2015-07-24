@@ -103,7 +103,7 @@ module SdbEx
       coll = coll.order(query[:order_by], query[:order]) unless query[:order_by].nil?
       
       header = []
-      items = {}
+      items = []
       coll.each do |item|
         data = []
         attrs = item.attributes.dup
@@ -112,9 +112,10 @@ module SdbEx
           header << k
           data << strip_value(v)
         end
-        items[item.name] = {
+        items<< {
+          name: item.name,
           data: data
-        }
+        } 
       end
       return {} if items.empty?
       {
