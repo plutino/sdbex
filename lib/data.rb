@@ -103,22 +103,26 @@ module SdbEx
       coll = coll.order(query[:order_by], query[:order]) unless query[:order_by].nil?
       
       header = []
-      data = []
+      items = {}
       coll.each do |item|
-        line = [item.name]
+        data = []
         attrs = item.attributes.dup
-        line += header.map { |key| strip_value(attrs.delete(key)) } 
+        data += header.map { |key| strip_value(attrs.delete(key)) } 
         attrs.each do |k, v| 
           header << k
-          line << strip_value(v)
+          data << strip_value(v)
         end
-        data << line
+        items[item.name] = {
+          data: data
+        }
       end
-      return [] if data.empty?
-      [['Item'] + header] + data      
+      return {} if items.empty?
+      {
+        attrs: header,
+        items: items
+      }
     end
-      
-    
+          
     def strip_value value
       if !value.nil? && value.size == 1
         value.first

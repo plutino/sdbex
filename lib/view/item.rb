@@ -55,6 +55,9 @@ module SdbEx
         build_menu @item_tbl
         
         @allow_sdb_write = false
+        @item_data = nil
+        
+         
       end
       
       def set_sdb_write_permission perm
@@ -99,12 +102,15 @@ module SdbEx
           @item_tbl['cols'] = 0
           @item_tbl['rows'] = 0
         else
-          @item_tbl['cols'] = d.first.count
-          @item_tbl['rows'] = d.count
-          d.each_with_index do |row, ridx|
-            row.each_with_index do |v, cidx|
-              @items[ridx, cidx] = v.nil? ? 'null' : v
-            end
+          @item_tbl['cols'] = d[:attrs].count + 1
+          @item_tbl['rows'] = d[:items].count + 1
+          @items[0,0] = 'Item'
+          d[:attrs].each_with_index { |v, idx| @items[0, idx+1] = v}
+          ridx = 1
+          d[:items].each do |name, item|
+            @items[ridx, 0] = name
+            item[:data].each_with_index { |v, idx| @items[ridx, idx+1] = v.nil? ? 'null' : v}
+            ridx += 1
           end
         end        
       end
