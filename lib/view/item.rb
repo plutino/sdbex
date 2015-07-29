@@ -105,9 +105,8 @@ module SdbEx
       end
       
       def set_row_style row
-#        puts 'tagging row ' + row.to_s
-        if @data.deleted_item?(row-1)
-#          puts 'tagged deleted'
+        r = row.to_i
+        if @data.deleted_item?(r - 1)
           'deleted_item'
         else
           '{}'
@@ -117,11 +116,14 @@ module SdbEx
       def set_cell_style row, col
       end
       
-      def set_cell_value row, col
-        if row == 0
-          col == 0 ? 'Item' : @data.attrs[col-1]
+      def set_cell_value r, c
+#        $console_logger.debug "set_cell_value (#{r}, #{c})"
+        if r == 0
+          c == 0 ? 'Item' : @data.attrs[c-1]
+        elsif r > @data.items.count
+          nil
         else
-          col == 0 ? @data.items[row-1][:name] : @data.items[row-1][:data][col-1]
+          c == 0 ? @data.items[r-1][:name] : @data.items[r-1][:data][c-1]
         end
       end
       
@@ -169,8 +171,7 @@ module SdbEx
         
         if dialog.run && !(attr_n = attr_name.value).empty? 
           if @data.add_attr(attr_n)
-            @item_tbl.insert_cols 'end', 1
-            @item_tbl.update   
+            @item_tbl['cols'] = @data.attrs.count + 1
             @logger.info "New attribute #{attr_n} is queued to be added."       
           else
             Tk.messageBox(
@@ -198,8 +199,7 @@ module SdbEx
                 
         if dialog.run && !(item_n = item_name.value).empty? 
           if @data.add_item(item_n)
-            @item_tbl.insert_rows 'end', 1
-            @item_tbl.update   
+            @item_tbl['rows'] = @data.items.count + 1
             @logger.info "New item #{item_n} is queued to be added."       
           else
             Tk.messageBox(
@@ -223,10 +223,12 @@ module SdbEx
         else
           indices = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq          
           res = @data.delete_items(indices)
-          @logger.info "New item(s) deleted: #{res[:deleted].join(', ')}." unless res[:deleted].empty?
+          unless res[:deleted].empty?            
+            @logger.info "New item(s) deleted: #{res[:deleted].join(', ')}." 
+            @item_tbl['rows'] = @data.items.count + 1
+          end
           @logger.info "Item(s) marked for deletion: #{res[:marked].join(', ')}" unless res[:marked].empty?
           @item_tbl.selection_clear 'origin', 'end'
-          @item_tbl.update          
         end
       end
       
@@ -238,7 +240,7 @@ module SdbEx
       private
       
       def redraw
-        if @data.items.empty?
+        if @data.items.nil?
           @item_tbl['cols'] = 0
           @item_tbl['rows'] = 0
         else

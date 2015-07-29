@@ -38,12 +38,11 @@ module SdbEx
     
       begin
         @sdb = AWS::SimpleDB.new @aws_opts
+        @active_domain = nil
+        @item_data = nil
         domains
       rescue Exception => ex
         @sdb = nil
-        @active_domain = nil
-        @item_data = nil
-        @query = {}
         return ex
       end
       true
@@ -132,7 +131,7 @@ module SdbEx
     # these methods assume @item_data is already loaded
     
     def add_item item_name
-      return false if @item_data[:items].keys.include? item_name
+      return false if @item_data[:items].map{|i| i[:name]}.include? item_name
       item = {
         name: item_name,
         status: :new,
@@ -156,11 +155,10 @@ module SdbEx
           item[:status] = :deleted
         end        
       end
-#      puts @item_data.inspect
       res
     end
     
-    def add_attribute attr_name
+    def add_attr attr_name
       return false if @item_data[:attrs].include? attr_name
       @item_data[:attrs] << attr_name
       @item_data[:items].each {|item| item[:data] << nil}
