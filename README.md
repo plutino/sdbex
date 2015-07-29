@@ -20,7 +20,6 @@ A Ruby/Tk application to view AWS SimpleDB data.
 
 #### TODO (prioritized)
 
-* Edit items
 * Reset changes (attribute, item, all)
 * Save item changes to SimpleDB
 * Load items in batches

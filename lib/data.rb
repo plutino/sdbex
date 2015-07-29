@@ -111,20 +111,18 @@ module SdbEx
       @item_data[:items]
     end
     
-    def deleted_item? idx
-      items[idx][:status] == :deleted
+    def item_deleted? idx
+      @item_data[:items][idx][:status] == :deleted
     end
     
-    def new_item? idx
-      items[idx][:status] == :new
+    def item_new? idx
+      @item_data[:items][idx][:status] == :new
     end
     
-    def modified_item? idx
-      items[idx][:status] == :changed
-    end
-    
-    def modified_attrs idx
-      items[idx][:changed_attrs]
+    def attr_modified? item_idx, attr_idx
+      item = @item_data[:items][item_idx]
+      (item.has_key?(:ori_data) && item[:data][attr_idx] != item[:ori_data][attr_idx]) ||
+        (item[:status] == :new && !item[:data][attr_idx].nil?)
     end
     
     # following methods modify items data in cache
@@ -163,6 +161,20 @@ module SdbEx
       @item_data[:attrs] << attr_name
       @item_data[:items].each {|item| item[:data] << nil}
       true
+    end
+    
+    def update_attr item_idx, attr_idx, val
+      item = @item_data[:items][item_idx]
+      
+      if item[:status] == :new
+        item[:data][attr_idx] = val
+      elsif item.has_key?(:ori_data)
+        item[:data][attr_idx] = val
+        item.delete(:ori_dta) if item[:data] == item[:ori_data]
+      else
+        item[:ori_data] = item[:data].dup
+        item[:data][attr_idx] = val
+      end        
     end
     
     private

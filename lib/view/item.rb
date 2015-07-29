@@ -44,7 +44,7 @@ module SdbEx
           usecommand: true,
           command: [ proc{|r, c| set_cell_value(r, c)}, "%r %c"],
           validate: true,
-          validatecommand: [ proc{|r, c, new_v, old_v| attr_changed(r,c, new_v, old_v) }, "%r %c %S %s"],
+          validatecommand: [ proc{|r, c, val| attr_changed(r, c, val) }, "%r %c %S"],
           rowtagcommand: proc{ |r| set_row_style(r) },
 #          tagcommand: proc{ |r, c| set_cell_style(r, c)}
         ).grid(row: 1, column: 0, sticky: 'nwse')
@@ -56,7 +56,9 @@ module SdbEx
         @item_tbl.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y" 
         
         @item_tbl.tag_configure('deleted_item', state: 'disabled', bg: '#ff9999')
-        @item_tbl.tag_configure('changed_attr', bg: 'cyan')
+        @item_tbl.tag_configure('modified_attr', bg: 'cyan')
+        @item_tbl.tag_raise 'modified_attr'
+        @item_tbl.tag_raise 'deleted_item'
         
         # popup menu
         build_menu @item_tbl
@@ -106,7 +108,7 @@ module SdbEx
       
       def set_row_style row
         r = row.to_i
-        if @data.deleted_item?(r - 1)
+        if @data.item_deleted?(r - 1)
           'deleted_item'
         else
           '{}'
@@ -123,36 +125,20 @@ module SdbEx
         elsif r > @data.items.count
           nil
         else
-          c == 0 ? @data.items[r-1][:name] : @data.items[r-1][:data][c-1]
-        end
+          if c == 0 
+            @data.items[r-1][:name] 
+          else
+            tag = @data.attr_modified?(r-1, c-1) ? 'modified_attr' : '{}'
+            @item_tbl.tag_cell tag, "#{r},#{c}"            
+            @data.items[r-1][:data][c-1]
+          end
+        end        
+        
       end
       
-      # called when active cell changed.  Here we check if previous 
-      # active cell value changed.
-      def cell_activated row, col
-        unless @last_active_cell.nil?
-          r = @last_active_cell.first
-          c = @last_active_cell.last
-          if @items[r, c] != @item_data[:items][r-1][:data][c-1]            
-            item = @item_data[:items][r-1]
-            if item[:status] == :new
-              item[:data][c-1] = @item[r,c]
-            else
-              if item[:status] == :changed
-              else
-                item[:status] = :changed
-                item[:changed_attrs] = []
-                item[:data_ori] = item[:data].dup
-                item
-              end
-            end
-          end          
-        end
-        @last_active_cell = [row, col]
-      end
-      
-      def attr_changed row, col, new_v, old_v
-        puts "(#{row}, #{col}) changed from #{old_v} to #{new_v}"
+      def attr_changed r, c, val
+        val = val.to_s
+        @data.update_attr(r-1, c-1, val.empty? ? nil : val)        
         true
       end
       
