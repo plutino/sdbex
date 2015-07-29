@@ -22,43 +22,50 @@ module SdbEx
         build_query_interface(query_frame)
         
         # item view    
-        @items = TkVariable.new_hash        
+#        @items = TkVariable.new_hash        
         @item_tbl = Tk::TkTable.new(@frame,
           titlecols: 1,
           titlerows: 1,
           cols: 0,
           rows: 0,
           font: TkFont.new(size: 14),
-          #ellipsis: '...',
+#          ellipsis: '...',
           justify: 'left',
-          #multiline: false,
+          multiline: true,
           colstretchmode: 'unset',
           drawmode: 'slow',
           state: 'disabled',
           selecttype: 'row',
           selectmode: 'extended',
-          selecttitle: true,
-          variable: @items,
+#          selecttitle: true,
+#          exportselection: false,
+#          variable: @items,
           sparsearray: false,
-#          rowtagcommand: proc{ |row| set_row_style(row) }
+          usecommand: true,
+          command: [ proc{|r, c| set_cell_value(r, c)}, "%r %c"],
+          validate: true,
+          validatecommand: [ proc{|r, c, new_v, old_v| attr_changed(r,c, new_v, old_v) }, "%r %c %S %s"],
+          rowtagcommand: proc{ |r| set_row_style(r) },
+#          tagcommand: proc{ |r, c| set_cell_style(r, c)}
         ).grid(row: 1, column: 0, sticky: 'nwse')
         @item_tbl.xscrollbar(Tk::Scrollbar.new(@frame).grid(row: 2, column: 0, sticky: 'nwse'))
         @item_tbl.yscrollbar(Tk::Scrollbar.new(@frame).grid(row: 1, column: 1, sticky: 'nwse'))
         TkGrid.columnconfigure @frame, 0, weight: 1
         TkGrid.rowconfigure @frame, 1, weight: 1
         
-        @item_tbl.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y"   
+        @item_tbl.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y" 
         
         @item_tbl.tag_configure('deleted_item', state: 'disabled', bg: '#ff9999')
-        @item_tbl.tag_configure('changed_item', bg: 'cyan')
+        @item_tbl.tag_configure('changed_attr', bg: 'cyan')
         
         # popup menu
         build_menu @item_tbl
         
         @allow_sdb_write = false
-        @item_data = nil                 
       end
       
+      # public callables
+          
       def set_sdb_write_permission perm
         @allow_sdb_write = perm
         build_menu @item_tbl
@@ -70,8 +77,10 @@ module SdbEx
         @where.value = @data.query[:where]
         @order_by.value = @data.query[:order_by]
         @order.value = @data.query[:order].upcase
-        reload
+        redraw
       end
+      
+      # widget callbacks
       
       def popup_menu x, y
         @item_menu.popup x, y
@@ -88,15 +97,61 @@ module SdbEx
         opts[:order] = @order.value.downcase
         st = @data.set_query **opts
         if st == true
-          reload
+          redraw
           @logger.info "Items updated for new query."
         elsif st != false
           @logger.error st.message      
         end
       end
       
-      def set_row_style
-        
+      def set_row_style row
+#        puts 'tagging row ' + row.to_s
+        if @data.deleted_item?(row-1)
+#          puts 'tagged deleted'
+          'deleted_item'
+        else
+          '{}'
+        end
+      end
+      
+      def set_cell_style row, col
+      end
+      
+      def set_cell_value row, col
+        if row == 0
+          col == 0 ? 'Item' : @data.attrs[col-1]
+        else
+          col == 0 ? @data.items[row-1][:name] : @data.items[row-1][:data][col-1]
+        end
+      end
+      
+      # called when active cell changed.  Here we check if previous 
+      # active cell value changed.
+      def cell_activated row, col
+        unless @last_active_cell.nil?
+          r = @last_active_cell.first
+          c = @last_active_cell.last
+          if @items[r, c] != @item_data[:items][r-1][:data][c-1]            
+            item = @item_data[:items][r-1]
+            if item[:status] == :new
+              item[:data][c-1] = @item[r,c]
+            else
+              if item[:status] == :changed
+              else
+                item[:status] = :changed
+                item[:changed_attrs] = []
+                item[:data_ori] = item[:data].dup
+                item
+              end
+            end
+          end          
+        end
+        @last_active_cell = [row, col]
+      end
+      
+      def attr_changed row, col, new_v, old_v
+        puts "(#{row}, #{col}) changed from #{old_v} to #{new_v}"
+        true
       end
       
       def add_attr
@@ -113,22 +168,17 @@ module SdbEx
         end
         
         if dialog.run && !(attr_n = attr_name.value).empty? 
-          if @item_data[:attrs].include? attr_n
+          if @data.add_attr(attr_n)
+            @item_tbl.insert_cols 'end', 1
+            @item_tbl.update   
+            @logger.info "New attribute #{attr_n} is queued to be added."       
+          else
             Tk.messageBox(
               type: 'ok',
               title: 'Duplicate attribute',
               message: "Attribute #{attr_n} already exists in the domain.",
               icon: 'warning'
             )
-          else
-            @item_tbl.insert_cols 'end', 1
-            @item_data[:attrs] << attr_n 
-            @item_data[:items].each do |name, item|
-              item[:data] << nil
-            end
-            @items[0, @item_data[:attrs].count] = attr_n    
-            @item_tbl.update   
-            @logger.info "New attribute #{attr_n} is queued to be added."       
           end
         end        
       end
@@ -147,22 +197,17 @@ module SdbEx
         end
                 
         if dialog.run && !(item_n = item_name.value).empty? 
-          if @item_data[:items].keys.include? item_n
+          if @data.add_item(item_n)
+            @item_tbl.insert_rows 'end', 1
+            @item_tbl.update   
+            @logger.info "New item #{item_n} is queued to be added."       
+          else
             Tk.messageBox(
               type: 'ok',
               title: 'Duplicate item',
               message: "Item #{item_n} already exists in the domain.",
               icon: 'warning'
             )
-          else
-            @item_tbl.insert_rows 'end', 1
-            item = {}
-            item[:status] = :new
-            item[:data] = [nil] * @item_data[:attrs].count            
-            @item_data[:items][item_n] = item
-            @items[@item_data[:items].count, 0] = item_n
-            @item_tbl.update   
-            @logger.info "New item #{item_n} is queued to be added."       
           end
         end        
       end
@@ -176,55 +221,59 @@ module SdbEx
             icon: 'warning'
           )
         else
-          rows = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i}.uniq
-          rows.each do |ridx|
-            item_name = @items[ridx, 0]
-            item = @item_data[:items][item_name]
-            if item[:status] == :new
-              @item_data[:items].delete item_name
-              @item_tbl.delete_rows ridx, 1
-              @logger.info "New item #{item_name} is deleted."
-            else
-              @item_tbl.tag_row 'deleted_item', ridx
-              item[:status] = :deleted
-              @logger.info "Item #{item_name} is marked for deletion."
-            end
-          end
+          indices = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq          
+          res = @data.delete_items(indices)
+          @logger.info "New item(s) deleted: #{res[:deleted].join(', ')}." unless res[:deleted].empty?
+          @logger.info "Item(s) marked for deletion: #{res[:marked].join(', ')}" unless res[:marked].empty?
           @item_tbl.selection_clear 'origin', 'end'
-          @item_tbl.update
+          @item_tbl.update          
         end
+      end
+      
+      def refresh_data
+        @data.reload_items
+        redraw
       end
       
       private
       
-      def reload        
-        @item_data = @data.items
-        redraw
-      end
-      
       def redraw
-        if @item_data.nil? || @item_data.empty?
+        if @data.items.empty?
           @item_tbl['cols'] = 0
           @item_tbl['rows'] = 0
         else
-          @item_tbl['cols'] = @item_data[:attrs].count + 1
-          @item_tbl['rows'] = @item_data[:items].count + 1
-          @items[0,0] = 'Item'
-          @item_data[:attrs].each_with_index { |v, idx| @items[0, idx+1] = v}
-          @item_data[:items].each_with_index do |item, ridx|
-            @items[ridx+1, 0] = item[:name]
-            item[:data].each_with_index do |v, idx| 
-              @items[ridx+1, idx+1] = v
-            end
-            if item[:status] == :deleted
-              @item_tbl.tag_row 'deleted_items', ridx
-            else
-              @item_tbl.tag_row '{}', ridx
-            end
-            ridx += 1
-          end
-        end        
+          @item_tbl['cols'] = @data.attrs.count + 1
+          @item_tbl['rows'] = @data.items.count + 1
+        end
+        @item_tbl.update
       end
+      
+#      def redraw
+#        if @item_data.nil? || @item_data.empty?
+#          @item_tbl['cols'] = 0
+#          @item_tbl['rows'] = 0
+#        else
+#          @item_tbl['cols'] = @item_data[:attrs].count + 1
+#          @item_tbl['rows'] = @item_data[:items].count + 1
+#          @items[0,0] = 'Item'
+#          @item_data[:attrs].each_with_index { |v, idx| @items[0, idx+1] = v}
+#          @item_data[:items].each_with_index do |item, idx|
+#            ridx = idx + 1
+#            @items[ridx, 0] = item[:name]
+#            item[:data].each_with_index do |v, attr_idx| 
+#              @items[ridx, attr_idx+1] = v
+#            end
+#            if item[:status] == :deleted
+#              @item_tbl.tag_row 'deleted_item', ridx
+#            else
+#              @item_tbl.tag_row_reset ridx
+#            end
+#            if item[:status] == :changed
+#              item[:changed_attrs].each {|attr_idx| @item_tbl.tag 'changed_attr', [ridx, attr_idx+1]}
+#            end
+#          end
+#        end        
+#      end
       
       # build query interface
       def build_query_interface(frame)
@@ -268,7 +317,7 @@ module SdbEx
       # build popup menu
       def build_menu(parent)
         @item_menu = TkMenu.new(parent)
-        @item_menu.add :command, label: 'Refresh', command: proc { refresh }  
+        @item_menu.add :command, label: 'Refresh', command: proc { refresh_data }  
         if @allow_sdb_write      
           @item_menu.add :separator
           @item_menu.add :command, label: 'Add attribute', command: proc{ add_attr }
