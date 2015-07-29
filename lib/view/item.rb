@@ -46,7 +46,6 @@ module SdbEx
           validate: true,
           validatecommand: [ proc{|r, c, val| attr_changed(r, c, val) }, "%r %c %S"],
           rowtagcommand: proc{ |r| set_row_style(r) },
-#          tagcommand: proc{ |r, c| set_cell_style(r, c)}
         ).grid(row: 1, column: 0, sticky: 'nwse')
         @item_tbl.xscrollbar(Tk::Scrollbar.new(@frame).grid(row: 2, column: 0, sticky: 'nwse'))
         @item_tbl.yscrollbar(Tk::Scrollbar.new(@frame).grid(row: 1, column: 1, sticky: 'nwse'))
@@ -115,9 +114,6 @@ module SdbEx
         end
       end
       
-      def set_cell_style row, col
-      end
-      
       def set_cell_value r, c
 #        $console_logger.debug "set_cell_value (#{r}, #{c})"
         if r == 0
@@ -138,7 +134,9 @@ module SdbEx
       
       def attr_changed r, c, val
         val = val.to_s
-        @data.update_attr(r-1, c-1, val.empty? ? nil : val)        
+        @data.update_attr(r-1, c-1, val.empty? ? nil : val)     
+        tag = @data.attr_modified?(r-1, c-1) ? 'modified_attr' : '{}'
+        @item_tbl.tag_cell tag, "#{r},#{c}"               
         true
       end
       
