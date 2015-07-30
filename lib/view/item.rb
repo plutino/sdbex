@@ -20,12 +20,13 @@ module SdbEx
         # query interface
         query_frame = Ttk::Frame.new(@frame).grid(row: 0, column: 0, columnspan: 2, sticky:'nwse')
         build_query_interface(query_frame)
-        
+                
         # item view    
 #        @items = TkVariable.new_hash        
         @item_tbl = Tk::TkTable.new(@frame,
           titlecols: 1,
           titlerows: 1,
+          borderwidth: 0,
           cols: 0,
           rows: 0,
           font: TkFont.new(size: 14),
@@ -33,13 +34,12 @@ module SdbEx
           justify: 'left',
           multiline: true,
           colstretchmode: 'unset',
+#          rowstretchmode: 'unset',
           drawmode: 'slow',
           state: 'disabled',
           selecttype: 'row',
           selectmode: 'extended',
-#          selecttitle: true,
-#          exportselection: false,
-#          variable: @items,
+          selecttitle: true,
           sparsearray: false,
           usecommand: true,
           command: [ proc{|r, c| set_cell_value(r, c)}, "%r %c"],
@@ -53,14 +53,15 @@ module SdbEx
         TkGrid.rowconfigure @frame, 1, weight: 1
         
         @item_tbl.bind '2', proc { |x,y| popup_menu(x,y) }, "%X %Y" 
-        
-        @item_tbl.tag_configure('deleted_item', state: 'disabled', bg: '#ff9999')
+                
+        @item_tbl.tag_configure('even_row', bg: '#e0e0e0')
+        @item_tbl.tag_configure('deleted_item', state: 'disabled', bg: '#ff9f9f', font: TkFont.new(overstrike: 1))
         @item_tbl.tag_configure('modified_attr', bg: 'cyan')
+        @item_tbl.tag_configure('active', relief: 'sunken', bg: '#ffffcc', borderwidth: 1)
+        @item_tbl.tag_configure('title', bg: '#3f3f3f', relief: 'raised', borderwidth: 1)
         @item_tbl.tag_raise 'modified_attr'
         @item_tbl.tag_raise 'deleted_item'
-        
-        # popup menu
-        build_menu @item_tbl
+        @item_tbl.tag_raise 'active'
         
         @allow_sdb_write = false
       end
@@ -69,8 +70,8 @@ module SdbEx
           
       def set_sdb_write_permission perm
         @allow_sdb_write = perm
-        build_menu @item_tbl
         @item_tbl['state'] = perm ? 'normal' : 'disabled'
+        refresh_data
       end
 
       def change_domain
@@ -84,7 +85,7 @@ module SdbEx
       # widget callbacks
       
       def popup_menu x, y
-        @item_menu.popup x, y
+        build_menu(x, y).popup(x, y) unless @data.active_domain.nil?
       end
       
       def do_query
@@ -109,6 +110,8 @@ module SdbEx
         r = row.to_i
         if @data.item_deleted?(r - 1)
           'deleted_item'
+        elsif r.even?
+          'even_row'
         else
           '{}'
         end
@@ -216,6 +219,30 @@ module SdbEx
         end
       end
       
+      def reset_attr        
+        r, c = @item_tbl.index('active').split(',').map(&:to_i)
+        i_idx = r-1
+        a_idx = c-1
+        @data.reset_attr(i_idx, a_idx)
+#        @item_tbl.tag_cell '{}', 'active'
+        @logger.info "Undo changes on #{@data.items[i_idx][:name]}.#{@data.attrs[a_idx]}."
+      end
+      
+      def reset_items
+        rows = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq          
+        rows.each do |r|
+          @data.reset_item r-1
+          @item_tbl.tag_row r.even? ? 'even_row' : '{}', r
+        end  
+        @logger.info "Undo changes on item(s): #{rows.map{|r| @data.items[r-1][:name]}.join(', ')}."   
+      end
+
+      def reset_all
+        @data.reset_all_items
+        @item_tbl.update
+        @logger.info "Undo all changes."
+      end
+      
       def refresh_data
         @data.reload_items
         redraw
@@ -233,34 +260,7 @@ module SdbEx
         end
         @item_tbl.update
       end
-      
-#      def redraw
-#        if @item_data.nil? || @item_data.empty?
-#          @item_tbl['cols'] = 0
-#          @item_tbl['rows'] = 0
-#        else
-#          @item_tbl['cols'] = @item_data[:attrs].count + 1
-#          @item_tbl['rows'] = @item_data[:items].count + 1
-#          @items[0,0] = 'Item'
-#          @item_data[:attrs].each_with_index { |v, idx| @items[0, idx+1] = v}
-#          @item_data[:items].each_with_index do |item, idx|
-#            ridx = idx + 1
-#            @items[ridx, 0] = item[:name]
-#            item[:data].each_with_index do |v, attr_idx| 
-#              @items[ridx, attr_idx+1] = v
-#            end
-#            if item[:status] == :deleted
-#              @item_tbl.tag_row 'deleted_item', ridx
-#            else
-#              @item_tbl.tag_row_reset ridx
-#            end
-#            if item[:status] == :changed
-#              item[:changed_attrs].each {|attr_idx| @item_tbl.tag 'changed_attr', [ridx, attr_idx+1]}
-#            end
-#          end
-#        end        
-#      end
-      
+            
       # build query interface
       def build_query_interface(frame)
         Ttk::Label.new(frame,
@@ -301,20 +301,58 @@ module SdbEx
       end
       
       # build popup menu
-      def build_menu(parent)
-        @item_menu = TkMenu.new(parent)
-        @item_menu.add :command, label: 'Refresh', command: proc { refresh_data }  
+      def build_menu(x, y)
+        menu = TkMenu.new(@item_tbl)
+        menu.add(:command, 
+          label: 'Refresh', 
+          command: proc { refresh_data }  
+        )
         if @allow_sdb_write      
-          @item_menu.add :separator
-          @item_menu.add :command, label: 'Add attribute', command: proc{ add_attr }
-          @item_menu.add :command, label: 'Add item', command: proc{ add_item }
-          @item_menu.add :command, label: 'Delete selected items', command: proc{ delete_items }
-#          @item_menu.add :command, label: 'Reset attribute', command: proc { reset_attr }
-#          @item_menu.add :command, label: 'Reset item', command: proc { reset_item }
-#          @item_menu.add :command, label: 'Reset all changes', command: proc { reset_all }
-          @item_menu.add :separator
-          @item_menu.add :command, label: 'Save changes', command: proc { save_items}
+
+          @item_tbl.activate "@#{x-@item_tbl.winfo_rootx},#{y-@item_tbl.winfo_rooty}"
+          @item_tbl.update
+          selected_items = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq 
+          selection_modified = selected_items.any?{|item| @data.item_modified?(item)}
+          modified = @data.modified?
+
+          menu.add :separator
+          menu.add(:command, 
+            label: 'Add attribute', 
+            command: proc{ add_attr }
+          )
+          menu.add(:command, 
+            label: 'Add item', 
+            command: proc{ add_item }
+          )
+          menu.add(:command, 
+            label: 'Delete selected items', 
+            command: proc{ delete_items },
+            state: selected_items.empty? ? 'disable' : 'normal'
+          )
+          menu.add :separator
+          menu.add(:command, 
+            label: 'Reset attribute', 
+            command: proc { reset_attr }
+            
+          )
+          menu.add(:command, 
+            label: 'Reset selected items', 
+            command: proc { reset_items },
+            state: selection_modified ? 'normal' : 'disable'
+          )
+          menu.add(:command, 
+            label: 'Reset all changes',
+            command: proc { reset_all },
+            state: modified ? 'normal' : 'disable'
+          )
+          menu.add :separator
+          menu.add(:command, 
+            label: 'Save changes', 
+            command: proc { save_items },
+            state: modified ? 'normal' : 'disable'            
+          )
         end
+        menu
       end
       
       

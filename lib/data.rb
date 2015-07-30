@@ -5,7 +5,7 @@ module SdbEx
     
     AWS_REGIONS=['us-east-1', 'us-west-1', 'us-west-2']
     ITEM_ORDER_TYPE=['ASC', 'DESC']
-  
+    
     attr_reader :active_domain, :query
   
     def initialize **options
@@ -97,28 +97,52 @@ module SdbEx
       
     # item operations
       
+    # clear current data cache and download data from sdb on next read
     def reload_items
       @item_data = nil
     end
       
+    EMPTY_ITEM_DATA = {
+      attrs: [],
+      items: []
+    }
+  
+    # attributes for current domain and query, 
+    # return [] if no active domain is set or if no data available
     def attrs
-      @item_data ||= @active_domain.nil? ? {} : get_items(@query)
+      @item_data ||= @active_domain.nil? ? EMPTY_ITEMS : get_items(@query)
       @item_data[:attrs]
     end
       
+    # items for current domain and query
+    # return [] if no active domain is set or if no data available
     def items
-      @item_data ||= @active_domain.nil? ? {} : get_items(@query)
+      @item_data ||= @active_domain.nil? ? EMPTY_ITEMS : get_items(@query)
       @item_data[:items]
     end
     
+    # true if current item list is modified
+    def modified?
+      @item_data[:items].any?{|item| item_modified?(0, item: item)}
+    end
+    
+    # true if item marked for deletion
     def item_deleted? idx
       @item_data[:items][idx][:status] == :deleted
     end
     
+    # true if item is newly created
     def item_new? idx
       @item_data[:items][idx][:status] == :new
     end
     
+    # true if item is modified
+    def item_modified? idx, item: nil
+      item ||= @item_data[:items][idx]
+      item.has_key?(:ori_data) || item[:status] == :deleted
+    end
+    
+    # true if attribute of an item is modified
     def attr_modified? item_idx, attr_idx
       item = @item_data[:items][item_idx]
       (item.has_key?(:ori_data) && item[:data][attr_idx] != item[:ori_data][attr_idx]) ||
@@ -127,6 +151,13 @@ module SdbEx
     
     # following methods modify items data in cache
     # these methods assume @item_data is already loaded
+
+    def add_attr attr_name
+      return false if @item_data[:attrs].include? attr_name
+      @item_data[:attrs] << attr_name
+      @item_data[:items].each {|item| item[:data] << nil}
+      true
+    end
     
     def add_item item_name
       return false if @item_data[:items].map{|i| i[:name]}.include? item_name
@@ -156,25 +187,43 @@ module SdbEx
       res
     end
     
-    def add_attr attr_name
-      return false if @item_data[:attrs].include? attr_name
-      @item_data[:attrs] << attr_name
-      @item_data[:items].each {|item| item[:data] << nil}
-      true
-    end
-    
     def update_attr item_idx, attr_idx, val
       item = @item_data[:items][item_idx]
-      
-      if item[:status] == :new
+      if item.has_key?(:ori_data)
         item[:data][attr_idx] = val
-      elsif item.has_key?(:ori_data)
-        item[:data][attr_idx] = val
-        item.delete(:ori_dta) if item[:data] == item[:ori_data]
+        if item[:data] == item[:ori_data]
+          item.delete(:ori_dta) 
+        end
       else
         item[:ori_data] = item[:data].dup
         item[:data][attr_idx] = val
       end        
+    end
+    
+    def reset_attr item_idx, attr_idx
+      item = @item_data[:items][item_idx]
+      if item.has_key?(:ori_data)
+        item[:data][attr_idx] = item[:ori_data][attr_idx]
+        if item[:data] == item[:ori_data]
+          item.delete(:ori_data) 
+        end
+      end
+    end
+
+    def reset_item item_idx, item: nil
+      item ||= @item_data[:items][item_idx]
+      if item[:status] == :deleted
+        item.delete(:status)
+      elsif item.has_key?(:ori_data)
+        item[:data] = item[:ori_data]
+        item.delete(:ori_data)
+      end      
+    end
+    
+    def reset_all_items 
+      @item_data[:items].each do |item|
+        reset_item(0, item: item)
+      end
     end
     
     private
@@ -199,7 +248,6 @@ module SdbEx
           data: data
         } 
       end
-      return {} if items.empty?
       {
         attrs: header,
         items: items
