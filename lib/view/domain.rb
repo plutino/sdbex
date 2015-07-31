@@ -64,8 +64,8 @@ module SdbEx
             @domain_list.itemconfigure(curselect, fg: @domain_list.cget('fg'), bg: @domain_list.cget('bg'))
           end
           @domain_list.itemconfigure('active', fg: 'blue', bg: 'yellow')
+          @logger.info "Switch to domain #{@selected_domain}."
           set_active_domain @selected_domain
-          @logger.info "Switched to domain #{@selected_domain}."
         end
       end
       
@@ -82,6 +82,7 @@ module SdbEx
           ).pack(side: 'left')
         end
         if dialog.run
+          @logger.warn "Create new domain #{domain_name.value}."
           @data.create_domain(domain_name.value) 
           reload
         end
@@ -96,13 +97,14 @@ module SdbEx
         )
 
         if confirmation == 'yes'
+          @logger.warn "Delete domain `#{@selected_domain}' and purge all items within it."
           @data.delete_domain(@selected_domain)
           reload
-          @logger.warn "Domain `#{@selected_domain}' deleted and all items within it purged."
         end
       end
       
       def refresh_domain
+        @logger.info "Refresh domain list."
         set_active_domain nil
         reload
       end

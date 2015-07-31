@@ -71,7 +71,8 @@ module SdbEx
       def set_sdb_write_permission perm
         @allow_sdb_write = perm
         @item_tbl['state'] = perm ? 'normal' : 'disabled'
-        refresh_data
+        @data.reload_items
+        redraw
       end
 
       def change_domain
@@ -224,7 +225,6 @@ module SdbEx
         i_idx = r-1
         a_idx = c-1
         @data.reset_attr(i_idx, a_idx)
-#        @item_tbl.tag_cell '{}', 'active'
         @logger.info "Undo changes on #{@data.items[i_idx][:name]}.#{@data.attrs[a_idx]}."
       end
       
@@ -244,8 +244,18 @@ module SdbEx
       end
       
       def refresh_data
+        if @allow_sdb_write && @data.modified?
+          confirmation = Tk::messageBox(
+            type: 'yesno',
+            title: 'Data reload', 
+            message: "There are pending changes. Do you want to discard all changes and reload items from SimpleDB?", 
+            icon: 'question'
+          )
+          return if confirmation == 'no'
+        end
         @data.reload_items
         redraw
+        @logger.info 'Items reloaded from SimpleDB'
       end
       
       private
@@ -313,7 +323,11 @@ module SdbEx
           @item_tbl.update
           selected_items = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq 
           selection_modified = selected_items.any?{|item| @data.item_modified?(item)}
+          selection_deleted = selected_items.all?{|item| @data.item_deleted?(item)}
           modified = @data.modified?
+          i_idx, a_idx = @item_tbl.index('active').split(',').map{|i| i.to_i - 1}
+          attr_modified = @data.attr_modified? i_idx, a_idx
+          item_deleted = @data.item_deleted? i_idx
 
           menu.add :separator
           menu.add(:command, 
@@ -327,13 +341,13 @@ module SdbEx
           menu.add(:command, 
             label: 'Delete selected items', 
             command: proc{ delete_items },
-            state: selected_items.empty? ? 'disable' : 'normal'
+            state: selected_items.empty? || selection_deleted ? 'disable' : 'normal'
           )
           menu.add :separator
           menu.add(:command, 
             label: 'Reset attribute', 
-            command: proc { reset_attr }
-            
+            command: proc { reset_attr },
+            state: attr_modified && ! item_deleted ? 'normal' : 'disable'
           )
           menu.add(:command, 
             label: 'Reset selected items', 

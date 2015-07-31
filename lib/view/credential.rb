@@ -83,17 +83,29 @@ module SdbEx
         if @allow_sdb_write.value == '1'
           confirmation = Tk::messageBox(
             type: 'yesno',
-            title: 'SimpleDB access mode', 
-            message: "Do you want to allow write operations to connected SimpleDB?", 
-            icon: 'warning'
+            title: 'Database access mode', 
+            message: "Do you want to allow write operations to database?", 
+            icon: 'question'
           )
           if confirmation == 'yes'
+            @logger.warn 'Enable write operations to database.'
             @callbacks[:write_permission_changed].call(true) unless @callbacks[:write_permission_changed].nil?
           else
             @allow_sdb_write.value = false
           end
         else
-          @callbacks[:write_permission_changed].call(false) unless @callbacks[:write_permission_changed].nil?
+          confirmation = Tk::messageBox(
+            type: 'yesno',
+            title: 'Database access mode', 
+            message: "Do you want to disallow write operations to database? All pending changes will be discarded.", 
+            icon: 'question'
+          )
+          if confirmation == 'yes'
+            @logger.warn 'Disable write operations to database.'
+            @callbacks[:write_permission_changed].call(false) unless @callbacks[:write_permission_changed].nil?
+          else
+            @allow_sdb_write.value = true
+          end          
         end
       end
       
@@ -102,12 +114,12 @@ module SdbEx
         if st
           @callbacks[:aws_connected].call unless @callbacks[:aws_connected].nil?
           if st == true
-            @logger.warn 'Connected to SimpleDB service.'
+            @logger.warn 'Connect to database.'
           else
-            @logger.error "Failed to connect to SimpleDB, Error: #{st.message}" 
+            @logger.error "Failed to connect to database, Error: #{st.message}" 
           end
         else
-          @logger.info 'Already connected to SimpleDB service.'
+          @logger.info 'Already connected to database.'
         end
       end
       
