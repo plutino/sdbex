@@ -110,14 +110,14 @@ module SdbEx
     # attributes for current domain and query, 
     # return [] if no active domain is set or if no data available
     def attrs
-      @item_data ||= @active_domain.nil? ? EMPTY_ITEMS : get_items(@query)
+      @item_data ||= @active_domain.nil? ? EMPTY_ITEM_DATA : get_items(@query)
       @item_data[:attrs]
     end
       
     # items for current domain and query
     # return [] if no active domain is set or if no data available
     def items
-      @item_data ||= @active_domain.nil? ? EMPTY_ITEMS : get_items(@query)
+      @item_data ||= @active_domain.nil? ? EMPTY_ITEM_DATA : get_items(@query)
       @item_data[:items]
     end
     
@@ -224,6 +224,50 @@ module SdbEx
       @item_data[:items].each do |item|
         reset_item(0, item: item)
       end
+    end
+    
+    def save_items
+      $console_logger.info 'Data#save_items'
+      sdb_items = @sdb.domains[@active_domain].items
+      deleted_items = []
+      $console_logger.debug "  @item_data[:items]: #{@item_data[:items].inspect}"      
+      @item_data[:items].each_with_index do |item, idx|
+        if item[:status] == :deleted
+          yield item[:name], :delete, :all
+          $console_logger.debug "  delete item #{item}"
+          sdb_items[item[:name]].attributes.delete @item_data[:attrs]
+          item.delete(:status)
+          deleted_items << idx
+        elsif item.has_key?(:ori_data)
+          changed_attrs = {}
+          deleted_attrs = []
+          item[:data].each_with_index do |attrib, idx|
+            if attrib != item[:ori_data][idx]
+              if attrib.nil?
+                deleted_attrs << @item_data[:attrs][idx]
+              else
+                changed_attrs[@item_data[:attrs][idx]] = attrib
+              end
+            end
+          end
+          $console_logger.debug "  update item #{item}"          
+          unless changed_attrs.empty?            
+            yield item[:name], (item[:status] == :new ? :new : :update), changed_attrs.keys
+            sdb_items[item[:name]].attributes.set changed_attrs 
+          end
+          unless deleted_attrs.empty?
+            yield item[:name], :delete, deleted_attrs
+            sdb_items[item[:name]].attributes.delete deleted_attrs 
+          end
+          item.delete(:ori_data)
+          item.delete(:status)
+        end
+      end
+      $console_logger.debug "deleted_items: #{deleted_items.inspect}"
+      deleted_items.sort.reverse.each do |idx|
+        @item_data[:items].delete_at idx
+      end
+      $console_logger.debug "@item_data[:items]: #{@item_data[:items].inspect}"
     end
     
     private

@@ -127,7 +127,7 @@ module SdbEx
         else
           if c == 0 
             @data.items[r-1][:name] 
-          else
+          else            
             tag = @data.attr_modified?(r-1, c-1) ? 'modified_attr' : '{}'
             @item_tbl.tag_cell tag, "#{r},#{c}"            
             @data.items[r-1][:data][c-1]
@@ -160,12 +160,12 @@ module SdbEx
         if dialog.run && !(attr_n = attr_name.value).empty? 
           if @data.add_attr(attr_n)
             @item_tbl['cols'] = @data.attrs.count + 1
-            @logger.info "New attribute #{attr_n} is queued to be added."       
+            @logger.info "New attribute `#{attr_n}' is queued to be added."       
           else
             Tk.messageBox(
               type: 'ok',
               title: 'Duplicate attribute',
-              message: "Attribute #{attr_n} already exists in the domain.",
+              message: "Attribute `#{attr_n}' already exists in the domain.",
               icon: 'warning'
             )
           end
@@ -188,12 +188,12 @@ module SdbEx
         if dialog.run && !(item_n = item_name.value).empty? 
           if @data.add_item(item_n)
             @item_tbl['rows'] = @data.items.count + 1
-            @logger.info "New item #{item_n} is queued to be added."       
+            @logger.info "New item `#{item_n}' is queued to be added."       
           else
             Tk.messageBox(
               type: 'ok',
               title: 'Duplicate item',
-              message: "Item #{item_n} already exists in the domain.",
+              message: "Item `#{item_n}' already exists in the domain.",
               icon: 'warning'
             )
           end
@@ -225,7 +225,7 @@ module SdbEx
         i_idx = r-1
         a_idx = c-1
         @data.reset_attr(i_idx, a_idx)
-        @logger.info "Undo changes on #{@data.items[i_idx][:name]}.#{@data.attrs[a_idx]}."
+        @logger.info "Undo changes on `#{@data.items[i_idx][:name]}.#{@data.attrs[a_idx]}'."
       end
       
       def reset_items
@@ -243,12 +243,40 @@ module SdbEx
         @logger.info "Undo all changes."
       end
       
+      # only called if there are pending changes
+      def save_items
+        confirmation = Tk::messageBox(
+          type: 'yesno',
+          title: 'Database write', 
+          message: "Do you want to write all pending changes to database?", 
+          icon: 'question'
+        )
+        if confirmation == 'yes'
+          @logger.warn 'Write pending changes to database.'          
+          @data.save_items do |item, op, attrs|
+            if op == :new
+              @logger.info "Create new item `#{item}' with attribute(s): #{attrs.join(', ')}."
+            elsif op == :update
+              @logger.info "Update attributes for item `#{item}': #{attrs.join(', ')}."
+            elsif op == :delete
+              if attrs == :all
+                @logger.info "Delete all attributes for item `#{item}'."
+              else
+                @logger.info "Delete attributes of item `#{item}': #{attrs.join(', ')}."
+              end
+            end
+          end
+          redraw
+        end
+        
+      end
+      
       def refresh_data
         if @allow_sdb_write && @data.modified?
           confirmation = Tk::messageBox(
             type: 'yesno',
             title: 'Data reload', 
-            message: "There are pending changes. Do you want to discard all changes and reload items from SimpleDB?", 
+            message: "There are pending changes. Do you want to discard all changes and reload items from database?", 
             icon: 'question'
           )
           return if confirmation == 'no'
@@ -318,7 +346,6 @@ module SdbEx
           command: proc { refresh_data }  
         )
         if @allow_sdb_write      
-
           @item_tbl.activate "@#{x-@item_tbl.winfo_rootx},#{y-@item_tbl.winfo_rooty}"
           @item_tbl.update
           selected_items = @item_tbl.curselection.map{|loc| loc.split(',').first.to_i - 1}.uniq 
@@ -368,8 +395,7 @@ module SdbEx
         end
         menu
       end
-      
-      
+            
     end
   end
 end
