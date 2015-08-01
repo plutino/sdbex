@@ -13,7 +13,6 @@ module SdbEx
         @logger = logger   
         
         @selected_domain = nil
-        @active_domain = nil
         @allow_sdb_write = false        
              
         @frame = Ttk::LabelFrame.new(parent,
@@ -58,13 +57,13 @@ module SdbEx
       
       def activate_domain x = nil, y = nil
         set_selected_domain(x, y)  unless x.nil? || y.nil?        
-        if @selected_domain != @active_domain
-          unless @active_domain.nil?
-            curselect = @domains.value.split.find_index(@active_domain)
+        if @selected_domain != @data.active_domain
+          unless @data.active_domain.nil?
+            curselect = @domains.value.split.find_index(@data.active_domain)
             @domain_list.itemconfigure(curselect, fg: @domain_list.cget('fg'), bg: @domain_list.cget('bg'))
           end
           @domain_list.itemconfigure('active', fg: 'blue', bg: 'yellow')
-          @logger.info "Switch to domain #{@selected_domain}."
+          @logger.info "Switch to domain `#{@selected_domain}'."
           set_active_domain @selected_domain
         end
       end
@@ -82,7 +81,7 @@ module SdbEx
           ).pack(side: 'left')
         end
         if dialog.run
-          @logger.warn "Create new domain #{domain_name.value}."
+          @logger.warn "Create new domain `#{domain_name.value}'."
           @data.create_domain(domain_name.value) 
           reload
         end
@@ -133,7 +132,8 @@ module SdbEx
         @domain_menu = TkMenu.new(@domain_list)
         @domain_menu.add :command, label: 'Show items', command: proc { activate_domain }        
         @domain_menu.add :command, label: 'Refresh', command: proc { refresh_domain }  
-        if @allow_sdb_write      
+        if @allow_sdb_write  
+          @domain_menu.add :separator    
           @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
           @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
         end
@@ -148,12 +148,10 @@ module SdbEx
       end
 
       def set_active_domain domain
-        @active_domain = domain
         @data.set_domain domain
         @callbacks[:domain_changed].call unless @callbacks[:domain_changed].nil?
       end
-        
-            
+                    
     end
   end
 end

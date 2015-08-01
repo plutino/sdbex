@@ -123,28 +123,30 @@ module SdbEx
     
     # true if current item list is modified
     def modified?
-      @item_data[:items].any?{|item| item_modified?(0, item: item)}
+      !items.nil? && items.any?{|item| item_modified?(0, item: item)}
     end
     
     # true if item marked for deletion
     def item_deleted? idx
-      @item_data[:items][idx][:status] == :deleted
+      !items.nil? && items[idx][:status] == :deleted
     end
     
     # true if item is newly created
     def item_new? idx
-      @item_data[:items][idx][:status] == :new
+      !items.nil? && items[idx][:status] == :new
     end
     
     # true if item is modified
     def item_modified? idx, item: nil
-      item ||= @item_data[:items][idx]
+      return false if items.nil?
+      item ||= items[idx]
       item.has_key?(:ori_data) || item[:status] == :deleted
     end
     
     # true if attribute of an item is modified
     def attr_modified? item_idx, attr_idx
-      item = @item_data[:items][item_idx]
+      return false if items.nil?
+      item = items[item_idx]
       (item.has_key?(:ori_data) && item[:data][attr_idx] != item[:ori_data][attr_idx]) ||
         (item[:status] == :new && !item[:data][attr_idx].nil?)
     end
@@ -153,20 +155,23 @@ module SdbEx
     # these methods assume @item_data is already loaded
 
     def add_attr attr_name
-      return false if @item_data[:attrs].include? attr_name
-      @item_data[:attrs] << attr_name
-      @item_data[:items].each {|item| item[:data] << nil}
+      return false if (attrs.nil? || attrs.include?(attr_name))
+      attrs << attr_name
+      items.each do |item| 
+        item[:data] << nil
+        item[:ori_data] << nil if item.has_key?(:ori_data)
+      end
       true
     end
     
     def add_item item_name
-      return false if @item_data[:items].map{|i| i[:name]}.include? item_name
+      return false if (items.nil? || items.map{|i| i[:name]}.include?(item_name))
       item = {
         name: item_name,
         status: :new,
         data: [nil] * @item_data[:attrs].count 
       }
-      @item_data[:items] << item
+      items << item
       true      
     end
     
@@ -175,10 +180,10 @@ module SdbEx
       res[:deleted] = []
       res[:marked] = []
       indices.sort.reverse.each do |idx|
-        item = @item_data[:items][idx]
+        item = items[idx]
         if item[:status] == :new
           res[:deleted] << item[:name]
-          @item_data[:items].delete_at(idx)
+          items.delete_at(idx)
         elsif item[:status] != :deleted
           res[:marked] << item[:name]
           item[:status] = :deleted
@@ -188,7 +193,7 @@ module SdbEx
     end
     
     def update_attr item_idx, attr_idx, val
-      item = @item_data[:items][item_idx]
+      item = items[item_idx]
       if item.has_key?(:ori_data)
         item[:data][attr_idx] = val
         if item[:data] == item[:ori_data]
@@ -201,7 +206,7 @@ module SdbEx
     end
     
     def reset_attr item_idx, attr_idx
-      item = @item_data[:items][item_idx]
+      item = items[item_idx]
       if item.has_key?(:ori_data)
         item[:data][attr_idx] = item[:ori_data][attr_idx]
         if item[:data] == item[:ori_data]
@@ -211,7 +216,7 @@ module SdbEx
     end
 
     def reset_item item_idx, item: nil
-      item ||= @item_data[:items][item_idx]
+      item ||= items[item_idx]
       if item[:status] == :deleted
         item.delete(:status)
       elsif item.has_key?(:ori_data)
@@ -221,7 +226,7 @@ module SdbEx
     end
     
     def reset_all_items 
-      @item_data[:items].each do |item|
+      items.each do |item|
         reset_item(0, item: item)
       end
     end
