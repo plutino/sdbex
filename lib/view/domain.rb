@@ -12,7 +12,6 @@ module SdbEx
         @data = data        
         @logger = logger   
         
-        @selected_domain = nil
         @allow_sdb_write = false        
              
         @frame = Ttk::LabelFrame.new(parent,
@@ -23,9 +22,6 @@ module SdbEx
         
         # domains list
         build_domain_list
-        
-        # popup menu
-        build_menu
       end
       
       def on_changed callback
@@ -34,7 +30,6 @@ module SdbEx
       
       def set_sdb_write_permission perm
         @allow_sdb_write = perm
-        build_menu
       end
             
       def reload 
@@ -50,21 +45,22 @@ module SdbEx
       end
       
       def popup_menu x, y
-        set_selected_domain x, y
+        set_selection x, y
         @domain_list.update
-        @domain_menu.popup x, y
+        build_menu.popup x, y
       end
       
-      def activate_domain x = nil, y = nil
-        set_selected_domain(x, y)  unless x.nil? || y.nil?        
-        if @selected_domain != @data.active_domain
+      def activate_domain x = nil, y = nil        
+        set_selection x,y unless x.nil?       
+        selection = @domain_list.curselection
+        unless selection.empty? || (selected_domain = @domain_list.get(selection)) == @data.active_domain
           unless @data.active_domain.nil?
             curselect = @domains.value.split.find_index(@data.active_domain)
             @domain_list.itemconfigure(curselect, fg: @domain_list.cget('fg'), bg: @domain_list.cget('bg'))
           end
-          @domain_list.itemconfigure('active', fg: 'blue', bg: 'yellow')
-          @logger.info "Switch to domain `#{@selected_domain}'."
-          set_active_domain @selected_domain
+          @domain_list.itemconfigure(selection.first, fg: 'blue', bg: 'yellow')
+          @logger.info "Switch to domain `#{selected_domain}'."
+          set_active_domain selected_domain
         end
       end
       
@@ -88,16 +84,19 @@ module SdbEx
       end
       
       def delete_domain
+        $console_logger.info 'Domain#delet_domain'
+        selected_domain = @domain_list.get(@domain_list.curselection)
+        $console_logger.debug "  selected_domain: #{selected_domain}"
         confirmation = Tk::messageBox(
           type: 'yesno',
           title: 'Domain deletion', 
-          message: "Do you want to delete domain `#{@selected_domain}' and all items within it?", 
+          message: "Do you want to delete domain `#{selected_domain}' and all items within it?", 
           icon: 'warning'
         )
 
         if confirmation == 'yes'
-          @logger.warn "Delete domain `#{@selected_domain}' and purge all items within it."
-          @data.delete_domain(@selected_domain)
+          @logger.warn "Delete domain `#{selected_domain}' and purge all items within it."
+          @data.delete_domain(selected_domain)
           reload
         end
       end
@@ -117,6 +116,8 @@ module SdbEx
           borderwidth: 0,
           listvariable: @domains,
           selectmode: 'browse',
+          exportselection: false,
+          activestyle: 'none'
         ).grid(row: 0, column: 0, sticky: 'nwse')
         @domain_list.xscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 1, column: 0, sticky: 'nwse'))
         @domain_list.yscrollbar(Ttk::Scrollbar.new(@frame).grid(row: 0, column: 1, sticky: 'nwse'))        
@@ -129,22 +130,40 @@ module SdbEx
       
       # build popup menu
       def build_menu
-        @domain_menu = TkMenu.new(@domain_list)
-        @domain_menu.add :command, label: 'Show items', command: proc { activate_domain }        
-        @domain_menu.add :command, label: 'Refresh', command: proc { refresh_domain }  
+        no_selected_domain = @domain_list.curselection.empty?
+        menu = TkMenu.new(@domain_list)
+        menu.add(:command,
+          label: 'Show items',
+          command: proc { activate_domain },
+          state: no_selected_domain ? 'disabled' : 'normal'
+        )
+        menu.add(:command, 
+          label: 'Refresh', 
+          command: proc { refresh_domain } 
+        ) 
         if @allow_sdb_write  
-          @domain_menu.add :separator    
-          @domain_menu.add :command, label: 'Create domain', command: proc { create_domain }
-          @domain_menu.add :command, label: 'Delete domain', command: proc { delete_domain }
+          menu.add :separator    
+          menu.add(:command, 
+            label: 'Create domain', 
+            command: proc { create_domain }
+          )
+          menu.add(:command,
+            label: 'Delete domain',
+            command: proc { delete_domain },
+            state: no_selected_domain ? 'disabled' : 'normal'
+          )
         end
+        menu
       end
 
-      def set_selected_domain x,y
-        idx = "@#{x-@domain_list.winfo_rootx},#{y-@domain_list.winfo_rooty}"
-        @domain_list.activate idx
+      def set_selection x,y
         @domain_list.selection_clear 0, 'end'
-        @domain_list.selection_set idx
-        @selected_domain = @domain_list.get(idx)
+        x_off = x-@domain_list.winfo_rootx
+        y_off = y-@domain_list.winfo_rooty
+        last_bbox = @domain_list.bbox('end')
+        if last_bbox.empty? || last_bbox[1] + last_bbox[3] > y_off
+          @domain_list.selection_set "@#{x_off},#{y_off}"
+        end        
       end
 
       def set_active_domain domain
