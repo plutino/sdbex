@@ -66,8 +66,8 @@ module SdbEx
         ).pack(side: 'left')
         
         # default cred to fill in when app starts
-        if File.exist("#{ENV['HOME']}/.sbdex/aws_credentials.yml")          
-          default_cred = YAML.load_file("#{ENV['HOME']}/.sbdex/aws_credentials.yml")
+        if File.exist("#{ENV['HOME']}/.sdbex/aws_credentials.yml")          
+          default_cred = YAML.load_file("#{ENV['HOME']}/.sdbex/aws_credentials.yml")
           @aws_key.value = default_cred['key']
           @aws_secret.value = default_cred['secret']
         end
