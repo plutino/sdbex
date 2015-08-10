@@ -60,9 +60,12 @@ module SdbEx
         # item
         @item = Item.new(item_frame, data, @logger)
         @item.frame.pack(expand: true, fill: 'both')
+
+        cred.aws_connect
+        
       end
       
-      def run
+      def run        
         Tk.mainloop
       end
       
