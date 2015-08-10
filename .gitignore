@@ -1,1 +1,3 @@
+.DS_Store
 config/aws_credential.yml
+pkg
