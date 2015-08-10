@@ -2,8 +2,8 @@
 
 require 'yaml'
 
-require_relative '../lib/data'
-require_relative '../lib/view'
+require_relative '../lib/sdbex/data'
+require_relative '../lib/sdbex/view'
 
 aws_opts = YAML.load_file(File.expand_path('../../config/aws_options.yml', __FILE__))
 
